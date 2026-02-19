@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 28">
+  <!-- Coração elegante fineline — estilo papel de carta de casamento -->
+  
+  <!-- Sombra externa sutil -->
+  <path d="M15,26 C5.5,19 0.5,12.5 0.5,7.5 C0.5,3.5 3.5,1 7,1 C9.5,1 12,2.5 15,6 C18,2.5 20.5,1 23,1 C26.5,1 29.5,3.5 29.5,7.5 C29.5,12.5 24.5,19 15,26Z"
+        fill="none" stroke="#E8D5A3" stroke-width="3" opacity="0.4" stroke-linejoin="round"/>
+  
+  <!-- Coração principal -->
+  <path d="M15,25 C6,18 1,12 1,7 C1,3.2 4,1 7.5,1 C10.2,1 12.5,2.8 15,6 C17.5,2.8 19.8,1 22.5,1 C26,1 29,3.2 29,7 C29,12 24,18 15,25Z"
+        fill="none" stroke="#C9A84C" stroke-width="1.5" opacity="0.85" stroke-linejoin="round"/>
+  
+  <!-- Detalhe interior: pequena linha decorativa -->
+  <path d="M15,21 C9,15.5 5,11 5,8 C5,6 6.5,4.5 8.5,4.5 C10,4.5 11.5,5.5 13,7.5"
+        fill="none" stroke="#E8D5A3" stroke-width="0.6" opacity="0.5" stroke-linecap="round"/>
+</svg>

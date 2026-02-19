@@ -1,0 +1,303 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+  <!-- ============================================================
+       CASAMENTO DOURADO — Background v2
+       Canvas: 300×300 (proporcional a 20×20cm para impressão)
+       Zona central sagrada: (60,60) → (240,240) — VAZIO
+       Decoração apenas nas bordas e cantos
+       ============================================================ -->
+
+  <!-- Fundo creme quente -->
+  <rect width="300" height="300" fill="#FAF7F5"/>
+
+  <!-- ─── BORDA DUPLA DOURADA ─── -->
+  <rect x="7" y="7" width="286" height="286" fill="none" stroke="#C9A84C" stroke-width="0.9" opacity="0.65"/>
+  <rect x="11" y="11" width="278" height="278" fill="none" stroke="#C9A84C" stroke-width="0.4" opacity="0.4"/>
+
+  <!-- ===================================================
+       CANTO SUPERIOR ESQUERDO — ramo floral
+       Confinado em (0,0) → (60,60)
+       =================================================== -->
+  <g opacity="0.65">
+    <!-- Caule principal curvo saindo do canto -->
+    <path d="M 4,56 C 10,45 20,32 36,18 C 44,12 54,6 62,4"
+          fill="none" stroke="#C9A84C" stroke-width="1.0" stroke-linecap="round"/>
+    <!-- Galho lateral esquerdo superior -->
+    <path d="M 22,38 C 16,32 12,24 14,16"
+          fill="none" stroke="#C9A84C" stroke-width="0.7" stroke-linecap="round"/>
+    <!-- Galho lateral direito médio -->
+    <path d="M 36,26 C 32,20 30,14 34,8"
+          fill="none" stroke="#C9A84C" stroke-width="0.7" stroke-linecap="round"/>
+    <!-- Folha 1 no galho esquerdo -->
+    <path d="M 14,16 C 10,12 8,8 10,4 C 14,7 16,12 14,16 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.7"/>
+    <!-- Folha 2 no galho esquerdo, pequena -->
+    <path d="M 22,38 C 18,35 16,30 18,26 C 21,28 22,33 22,38 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.6"/>
+    <!-- Folha 3 no galho direito -->
+    <path d="M 34,8 C 30,5 29,2 32,0 C 36,2 36,6 34,8 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.7"/>
+    <!-- Folha 4 no galho direito, larga -->
+    <path d="M 36,26 C 40,22 44,22 44,26 C 40,28 36,28 36,26 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.6"/>
+    <!-- Flor pequena no caule principal — ponto 1 -->
+    <circle cx="28" cy="30" r="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.6" opacity="0.8"/>
+    <circle cx="28" cy="30" r="0.7" fill="#C9A84C" opacity="0.9"/>
+    <!-- Pétalas flor 1 -->
+    <ellipse cx="28" cy="27.5" rx="1.0" ry="1.6" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="28" cy="32.5" rx="1.0" ry="1.6" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="25.5" cy="30" rx="1.6" ry="1.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="30.5" cy="30" rx="1.6" ry="1.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <!-- Flor pequena — ponto 2 -->
+    <circle cx="48" cy="14" r="2.2" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.6" opacity="0.8"/>
+    <circle cx="48" cy="14" r="0.8" fill="#C9A84C" opacity="0.9"/>
+    <ellipse cx="48" cy="11" rx="1.1" ry="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="48" cy="17" rx="1.1" ry="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="45" cy="14" rx="1.8" ry="1.1" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="51" cy="14" rx="1.8" ry="1.1" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <!-- Botão floral pequeno no topo do galho -->
+    <circle cx="16" cy="13" r="1.2" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.7"/>
+    <!-- Ponto decorativo no galho direito -->
+    <circle cx="36" cy="17" r="0.9" fill="#C9A84C" opacity="0.5"/>
+    <!-- Folhinhas pequenas ao longo do caule -->
+    <path d="M 18,48 C 15,46 14,42 16,40 C 18,41 18,45 18,48 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.5"/>
+    <path d="M 42,22 C 46,20 50,21 50,24 C 46,25 42,24 42,22 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.5"/>
+  </g>
+
+  <!-- ===================================================
+       CANTO SUPERIOR DIREITO — espelho horizontal
+       =================================================== -->
+  <g transform="translate(300,0) scale(-1,1)" opacity="0.65">
+    <path d="M 4,56 C 10,45 20,32 36,18 C 44,12 54,6 62,4"
+          fill="none" stroke="#C9A84C" stroke-width="1.0" stroke-linecap="round"/>
+    <path d="M 22,38 C 16,32 12,24 14,16"
+          fill="none" stroke="#C9A84C" stroke-width="0.7" stroke-linecap="round"/>
+    <path d="M 36,26 C 32,20 30,14 34,8"
+          fill="none" stroke="#C9A84C" stroke-width="0.7" stroke-linecap="round"/>
+    <path d="M 14,16 C 10,12 8,8 10,4 C 14,7 16,12 14,16 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.7"/>
+    <path d="M 22,38 C 18,35 16,30 18,26 C 21,28 22,33 22,38 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.6"/>
+    <path d="M 34,8 C 30,5 29,2 32,0 C 36,2 36,6 34,8 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.7"/>
+    <path d="M 36,26 C 40,22 44,22 44,26 C 40,28 36,28 36,26 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.6"/>
+    <circle cx="28" cy="30" r="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.6" opacity="0.8"/>
+    <circle cx="28" cy="30" r="0.7" fill="#C9A84C" opacity="0.9"/>
+    <ellipse cx="28" cy="27.5" rx="1.0" ry="1.6" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="28" cy="32.5" rx="1.0" ry="1.6" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="25.5" cy="30" rx="1.6" ry="1.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="30.5" cy="30" rx="1.6" ry="1.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <circle cx="48" cy="14" r="2.2" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.6" opacity="0.8"/>
+    <circle cx="48" cy="14" r="0.8" fill="#C9A84C" opacity="0.9"/>
+    <ellipse cx="48" cy="11" rx="1.1" ry="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="48" cy="17" rx="1.1" ry="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="45" cy="14" rx="1.8" ry="1.1" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="51" cy="14" rx="1.8" ry="1.1" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <circle cx="16" cy="13" r="1.2" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.7"/>
+    <circle cx="36" cy="17" r="0.9" fill="#C9A84C" opacity="0.5"/>
+    <path d="M 18,48 C 15,46 14,42 16,40 C 18,41 18,45 18,48 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.5"/>
+    <path d="M 42,22 C 46,20 50,21 50,24 C 46,25 42,24 42,22 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.5"/>
+  </g>
+
+  <!-- ===================================================
+       CANTO INFERIOR ESQUERDO — espelho vertical
+       =================================================== -->
+  <g transform="translate(0,300) scale(1,-1)" opacity="0.65">
+    <path d="M 4,56 C 10,45 20,32 36,18 C 44,12 54,6 62,4"
+          fill="none" stroke="#C9A84C" stroke-width="1.0" stroke-linecap="round"/>
+    <path d="M 22,38 C 16,32 12,24 14,16"
+          fill="none" stroke="#C9A84C" stroke-width="0.7" stroke-linecap="round"/>
+    <path d="M 36,26 C 32,20 30,14 34,8"
+          fill="none" stroke="#C9A84C" stroke-width="0.7" stroke-linecap="round"/>
+    <path d="M 14,16 C 10,12 8,8 10,4 C 14,7 16,12 14,16 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.7"/>
+    <path d="M 22,38 C 18,35 16,30 18,26 C 21,28 22,33 22,38 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.6"/>
+    <path d="M 34,8 C 30,5 29,2 32,0 C 36,2 36,6 34,8 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.7"/>
+    <path d="M 36,26 C 40,22 44,22 44,26 C 40,28 36,28 36,26 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.6"/>
+    <circle cx="28" cy="30" r="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.6" opacity="0.8"/>
+    <circle cx="28" cy="30" r="0.7" fill="#C9A84C" opacity="0.9"/>
+    <ellipse cx="28" cy="27.5" rx="1.0" ry="1.6" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="28" cy="32.5" rx="1.0" ry="1.6" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="25.5" cy="30" rx="1.6" ry="1.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="30.5" cy="30" rx="1.6" ry="1.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <circle cx="48" cy="14" r="2.2" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.6" opacity="0.8"/>
+    <circle cx="48" cy="14" r="0.8" fill="#C9A84C" opacity="0.9"/>
+    <ellipse cx="48" cy="11" rx="1.1" ry="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="48" cy="17" rx="1.1" ry="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="45" cy="14" rx="1.8" ry="1.1" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="51" cy="14" rx="1.8" ry="1.1" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <circle cx="16" cy="13" r="1.2" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.7"/>
+    <circle cx="36" cy="17" r="0.9" fill="#C9A84C" opacity="0.5"/>
+    <path d="M 18,48 C 15,46 14,42 16,40 C 18,41 18,45 18,48 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.5"/>
+    <path d="M 42,22 C 46,20 50,21 50,24 C 46,25 42,24 42,22 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.5"/>
+  </g>
+
+  <!-- ===================================================
+       CANTO INFERIOR DIREITO — espelho diagonal
+       =================================================== -->
+  <g transform="translate(300,300) scale(-1,-1)" opacity="0.65">
+    <path d="M 4,56 C 10,45 20,32 36,18 C 44,12 54,6 62,4"
+          fill="none" stroke="#C9A84C" stroke-width="1.0" stroke-linecap="round"/>
+    <path d="M 22,38 C 16,32 12,24 14,16"
+          fill="none" stroke="#C9A84C" stroke-width="0.7" stroke-linecap="round"/>
+    <path d="M 36,26 C 32,20 30,14 34,8"
+          fill="none" stroke="#C9A84C" stroke-width="0.7" stroke-linecap="round"/>
+    <path d="M 14,16 C 10,12 8,8 10,4 C 14,7 16,12 14,16 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.7"/>
+    <path d="M 22,38 C 18,35 16,30 18,26 C 21,28 22,33 22,38 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.6"/>
+    <path d="M 34,8 C 30,5 29,2 32,0 C 36,2 36,6 34,8 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.7"/>
+    <path d="M 36,26 C 40,22 44,22 44,26 C 40,28 36,28 36,26 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.6"/>
+    <circle cx="28" cy="30" r="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.6" opacity="0.8"/>
+    <circle cx="28" cy="30" r="0.7" fill="#C9A84C" opacity="0.9"/>
+    <ellipse cx="28" cy="27.5" rx="1.0" ry="1.6" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="28" cy="32.5" rx="1.0" ry="1.6" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="25.5" cy="30" rx="1.6" ry="1.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="30.5" cy="30" rx="1.6" ry="1.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <circle cx="48" cy="14" r="2.2" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.6" opacity="0.8"/>
+    <circle cx="48" cy="14" r="0.8" fill="#C9A84C" opacity="0.9"/>
+    <ellipse cx="48" cy="11" rx="1.1" ry="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="48" cy="17" rx="1.1" ry="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="45" cy="14" rx="1.8" ry="1.1" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <ellipse cx="51" cy="14" rx="1.8" ry="1.1" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.7"/>
+    <circle cx="16" cy="13" r="1.2" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.7"/>
+    <circle cx="36" cy="17" r="0.9" fill="#C9A84C" opacity="0.5"/>
+    <path d="M 18,48 C 15,46 14,42 16,40 C 18,41 18,45 18,48 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.5"/>
+    <path d="M 42,22 C 46,20 50,21 50,24 C 46,25 42,24 42,22 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.5"/>
+  </g>
+
+  <!-- ===================================================
+       TOPO — fileira de flores e folhas ao longo da borda
+       Confinado em y: 14 → 55 (acima da zona central)
+       Centro x: 60 → 240 — ramo horizontal discreto
+       =================================================== -->
+  <g opacity="0.55">
+    <!-- Ramo horizontal superior, de x=65 a x=235 -->
+    <path d="M 65,22 C 90,18 110,24 130,20 C 150,16 170,22 190,19 C 210,16 225,20 235,22"
+          fill="none" stroke="#C9A84C" stroke-width="0.7" stroke-linecap="round"/>
+    <!-- Folhas ao longo do ramo superior -->
+    <path d="M 90,20 C 88,16 90,12 94,13 C 93,17 91,20 90,20 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.7"/>
+    <path d="M 110,22 C 108,18 112,14 115,16 C 114,19 112,22 110,22 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.7"/>
+    <path d="M 150,18 C 148,14 152,10 155,12 C 154,15 152,18 150,18 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.7"/>
+    <path d="M 190,21 C 188,17 192,13 195,15 C 194,18 192,21 190,21 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.7"/>
+    <path d="M 215,20 C 213,16 217,12 220,14 C 219,17 217,20 215,20 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.7"/>
+    <!-- Florinhas pequenas ao longo do ramo topo -->
+    <!-- Flor 1 em x=78 -->
+    <circle cx="78" cy="19" r="1.5" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.8"/>
+    <circle cx="78" cy="19" r="0.6" fill="#C9A84C" opacity="0.9"/>
+    <!-- Flor 2 em x=130 -->
+    <circle cx="130" cy="20" r="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.8"/>
+    <circle cx="130" cy="20" r="0.7" fill="#C9A84C" opacity="0.9"/>
+    <ellipse cx="130" cy="17.5" rx="0.9" ry="1.4" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.6"/>
+    <ellipse cx="130" cy="22.5" rx="0.9" ry="1.4" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.6"/>
+    <ellipse cx="127.5" cy="20" rx="1.4" ry="0.9" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.6"/>
+    <ellipse cx="132.5" cy="20" rx="1.4" ry="0.9" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.6"/>
+    <!-- Flor 3 em x=170 -->
+    <circle cx="170" cy="21" r="1.5" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.8"/>
+    <circle cx="170" cy="21" r="0.6" fill="#C9A84C" opacity="0.9"/>
+    <!-- Flor 4 — centro topo em x=150 (posição "leve" para não invadir) -->
+    <!-- Pontinhos decorativos -->
+    <circle cx="100" cy="21" r="0.6" fill="#C9A84C" opacity="0.4"/>
+    <circle cx="160" cy="20" r="0.6" fill="#C9A84C" opacity="0.4"/>
+    <circle cx="200" cy="20" r="0.6" fill="#C9A84C" opacity="0.4"/>
+  </g>
+
+  <!-- ===================================================
+       BASE — fileira de flores e folhas (espelho do topo)
+       =================================================== -->
+  <g transform="translate(0,300) scale(1,-1)" opacity="0.55">
+    <path d="M 65,22 C 90,18 110,24 130,20 C 150,16 170,22 190,19 C 210,16 225,20 235,22"
+          fill="none" stroke="#C9A84C" stroke-width="0.7" stroke-linecap="round"/>
+    <path d="M 90,20 C 88,16 90,12 94,13 C 93,17 91,20 90,20 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.7"/>
+    <path d="M 110,22 C 108,18 112,14 115,16 C 114,19 112,22 110,22 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.7"/>
+    <path d="M 150,18 C 148,14 152,10 155,12 C 154,15 152,18 150,18 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.7"/>
+    <path d="M 190,21 C 188,17 192,13 195,15 C 194,18 192,21 190,21 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.7"/>
+    <path d="M 215,20 C 213,16 217,12 220,14 C 219,17 217,20 215,20 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.7"/>
+    <circle cx="78" cy="19" r="1.5" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.8"/>
+    <circle cx="78" cy="19" r="0.6" fill="#C9A84C" opacity="0.9"/>
+    <circle cx="130" cy="20" r="1.8" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.8"/>
+    <circle cx="130" cy="20" r="0.7" fill="#C9A84C" opacity="0.9"/>
+    <ellipse cx="130" cy="17.5" rx="0.9" ry="1.4" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.6"/>
+    <ellipse cx="130" cy="22.5" rx="0.9" ry="1.4" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.6"/>
+    <ellipse cx="127.5" cy="20" rx="1.4" ry="0.9" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.6"/>
+    <ellipse cx="132.5" cy="20" rx="1.4" ry="0.9" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.6"/>
+    <circle cx="170" cy="21" r="1.5" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.8"/>
+    <circle cx="170" cy="21" r="0.6" fill="#C9A84C" opacity="0.9"/>
+    <circle cx="100" cy="21" r="0.6" fill="#C9A84C" opacity="0.4"/>
+    <circle cx="160" cy="20" r="0.6" fill="#C9A84C" opacity="0.4"/>
+    <circle cx="200" cy="20" r="0.6" fill="#C9A84C" opacity="0.4"/>
+  </g>
+
+  <!-- ===================================================
+       LATERAIS — ramo vertical discreto (esquerda e direita)
+       x: 14 → 55 | confinado em y: 65 → 235
+       =================================================== -->
+  <g opacity="0.45">
+    <!-- Ramo vertical esquerdo -->
+    <path d="M 22,68 C 18,90 24,115 20,140 C 16,165 22,185 20,210 C 18,225 20,232 22,235"
+          fill="none" stroke="#C9A84C" stroke-width="0.6" stroke-linecap="round"/>
+    <!-- Folhinhas na lateral esquerda -->
+    <path d="M 22,90 C 18,88 14,90 15,94 C 18,93 21,91 22,90 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.6"/>
+    <path d="M 20,120 C 16,118 12,120 13,124 C 16,123 19,121 20,120 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.6"/>
+    <path d="M 22,150 C 18,148 14,150 15,154 C 18,153 21,151 22,150 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.6"/>
+    <path d="M 20,180 C 16,178 12,180 13,184 C 16,183 19,181 20,180 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.6"/>
+    <path d="M 22,210 C 18,208 14,210 15,214 C 18,213 21,211 22,210 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.6"/>
+    <!-- Pontinhos laterais esquerda -->
+    <circle cx="22" cy="105" r="0.7" fill="#C9A84C" opacity="0.4"/>
+    <circle cx="20" cy="165" r="0.7" fill="#C9A84C" opacity="0.4"/>
+    <circle cx="22" cy="225" r="0.7" fill="#C9A84C" opacity="0.4"/>
+  </g>
+
+  <g transform="translate(300,0) scale(-1,1)" opacity="0.45">
+    <!-- Ramo vertical direito (espelho) -->
+    <path d="M 22,68 C 18,90 24,115 20,140 C 16,165 22,185 20,210 C 18,225 20,232 22,235"
+          fill="none" stroke="#C9A84C" stroke-width="0.6" stroke-linecap="round"/>
+    <path d="M 22,90 C 18,88 14,90 15,94 C 18,93 21,91 22,90 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.6"/>
+    <path d="M 20,120 C 16,118 12,120 13,124 C 16,123 19,121 20,120 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.6"/>
+    <path d="M 22,150 C 18,148 14,150 15,154 C 18,153 21,151 22,150 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.6"/>
+    <path d="M 20,180 C 16,178 12,180 13,184 C 16,183 19,181 20,180 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.6"/>
+    <path d="M 22,210 C 18,208 14,210 15,214 C 18,213 21,211 22,210 Z"
+          fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.6"/>
+    <circle cx="22" cy="105" r="0.7" fill="#C9A84C" opacity="0.4"/>
+    <circle cx="20" cy="165" r="0.7" fill="#C9A84C" opacity="0.4"/>
+    <circle cx="22" cy="225" r="0.7" fill="#C9A84C" opacity="0.4"/>
+  </g>
+
+  <!-- ===================================================
+       ZONA CENTRAL SAGRADA: (60,60) → (240,240)
+       COMPLETAMENTE VAZIO — apenas o fundo creme
+       =================================================== -->
+
+</svg>

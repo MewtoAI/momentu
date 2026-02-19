@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Argola esquerda — anel de casamento individual -->
+  <!-- Sombra externa sutil -->
+  <circle cx="16" cy="16" r="14" fill="none" stroke="#E8D5A3" stroke-width="4" opacity="0.3"/>
+  <!-- Corpo do anel -->
+  <circle cx="16" cy="16" r="12" fill="none" stroke="#C9A84C" stroke-width="2.5"/>
+  <!-- Espessura/volume: linha interna mais fina -->
+  <circle cx="16" cy="16" r="9.5" fill="none" stroke="#E8D5A3" stroke-width="0.6" opacity="0.5"/>
+  <!-- Reflexo de luz no topo -->
+  <path d="M 9,9 C 11,7 14,6 18,8" fill="none" stroke="#E8D5A3" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+  <!-- Ponto brilhante -->
+  <circle cx="10" cy="9" r="0.8" fill="#FAF7F5" opacity="0.8"/>
+</svg>

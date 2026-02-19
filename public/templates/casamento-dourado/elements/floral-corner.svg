@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">
+  <!-- Canto floral elegante — ornamento de canto para uso standalone -->
+  
+  <!-- Caule principal diagonal -->
+  <path d="M 4,56 C 10,45 20,32 36,18 C 44,12 54,6 58,4"
+        fill="none" stroke="#C9A84C" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
+  
+  <!-- Galho superior esquerdo -->
+  <path d="M 22,38 C 16,32 12,22 14,14"
+        fill="none" stroke="#C9A84C" stroke-width="0.8" stroke-linecap="round" opacity="0.7"/>
+  
+  <!-- Galho direito médio -->
+  <path d="M 38,24 C 32,18 30,12 34,6"
+        fill="none" stroke="#C9A84C" stroke-width="0.8" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Folha 1 — no galho superior -->
+  <path d="M 14,14 C 10,10 8,6 10,2 C 14,5 16,10 14,14 Z"
+        fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.6" opacity="0.75"/>
+  <!-- Nervura folha 1 -->
+  <path d="M 10,2 C 12,7 13,11 14,14" fill="none" stroke="#C9A84C" stroke-width="0.3" opacity="0.5"/>
+
+  <!-- Folha 2 — lateral do galho esquerdo -->
+  <path d="M 18,32 C 13,29 11,24 14,20 C 17,22 18,27 18,32 Z"
+        fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.6" opacity="0.65"/>
+  
+  <!-- Folha 3 — no galho direito -->
+  <path d="M 34,6 C 30,3 29,0 32,0 C 36,1 37,4 34,6 Z"
+        fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.6" opacity="0.75"/>
+  
+  <!-- Folha 4 — saindo para a direita do galho médio -->
+  <path d="M 38,24 C 42,20 46,20 46,24 C 42,26 38,26 38,24 Z"
+        fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.6" opacity="0.65"/>
+  <!-- Nervura folha 4 -->
+  <path d="M 38,24 C 41,22 45,21 46,24" fill="none" stroke="#C9A84C" stroke-width="0.3" opacity="0.5"/>
+  
+  <!-- Folhinhas pequenas ao longo do caule -->
+  <path d="M 46,12 C 50,10 52,12 50,15 C 48,14 46,13 46,12 Z"
+        fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.55"/>
+  <path d="M 16,48 C 13,45 12,40 15,38 C 17,40 17,44 16,48 Z"
+        fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.55"/>
+
+  <!-- Flor 1 — no ponto médio do caule -->
+  <g opacity="0.85">
+    <circle cx="28" cy="30" r="2.2" fill="#FAF7F5" stroke="#C9A84C" stroke-width="0.5"/>
+    <!-- 5 pétalas -->
+    <ellipse cx="28" cy="27" rx="1.2" ry="2.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.8"/>
+    <ellipse cx="28" cy="33" rx="1.2" ry="2.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.8"/>
+    <ellipse cx="25" cy="30" rx="2.0" ry="1.2" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.8"/>
+    <ellipse cx="31" cy="30" rx="2.0" ry="1.2" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.4" opacity="0.8"/>
+    <ellipse cx="25.8" cy="27.8" rx="1.5" ry="1.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" transform="rotate(-45,25.8,27.8)" opacity="0.7"/>
+    <ellipse cx="30.2" cy="27.8" rx="1.5" ry="1.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" transform="rotate(45,30.2,27.8)" opacity="0.7"/>
+    <!-- Centro da flor -->
+    <circle cx="28" cy="30" r="1.0" fill="#C9A84C" opacity="0.9"/>
+  </g>
+
+  <!-- Flor 2 — no topo do caule, menor -->
+  <g opacity="0.80">
+    <circle cx="48" cy="12" r="1.8" fill="#FAF7F5" stroke="#C9A84C" stroke-width="0.4"/>
+    <ellipse cx="48" cy="9.5" rx="1.0" ry="1.7" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.8"/>
+    <ellipse cx="48" cy="14.5" rx="1.0" ry="1.7" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.8"/>
+    <ellipse cx="45.5" cy="12" rx="1.7" ry="1.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.8"/>
+    <ellipse cx="50.5" cy="12" rx="1.7" ry="1.0" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.3" opacity="0.8"/>
+    <circle cx="48" cy="12" r="0.8" fill="#C9A84C" opacity="0.9"/>
+  </g>
+
+  <!-- Botão floral pequeno no caule inferior -->
+  <circle cx="10" cy="50" r="1.4" fill="#E8D5A3" stroke="#C9A84C" stroke-width="0.5" opacity="0.7"/>
+  <circle cx="10" cy="50" r="0.5" fill="#C9A84C" opacity="0.8"/>
+
+  <!-- Pontos decorativos -->
+  <circle cx="36" cy="18" r="0.8" fill="#C9A84C" opacity="0.45"/>
+  <circle cx="20" cy="42" r="0.7" fill="#C9A84C" opacity="0.4"/>
+</svg>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 32">
+  <!-- Aliança de casamento — dois anéis sobrepostos, fineline dourado -->
+  
+  <!-- Sombra sutil anel esquerdo -->
+  <circle cx="26" cy="16" r="13" fill="none" stroke="#E8D5A3" stroke-width="4" opacity="0.3"/>
+  <!-- Anel esquerdo — corpo principal -->
+  <circle cx="26" cy="16" r="12" fill="none" stroke="#C9A84C" stroke-width="2.2"/>
+  <!-- Reflexo sutil no anel esquerdo -->
+  <path d="M 18,9 C 20,7 24,6 28,8" fill="none" stroke="#E8D5A3" stroke-width="1.0" stroke-linecap="round" opacity="0.6"/>
+  
+  <!-- Máscara de sobreposição — esconde a frente do anel esquerdo onde o direito passa -->
+  <!-- Área de recorte do anel esquerdo (parte inferior da interseção) -->
+  <path d="M 37.5,9.5 Q 44,16 37.5,22.5" fill="#FAF7F5" stroke="none"/>
+  
+  <!-- Sombra sutil anel direito -->
+  <circle cx="54" cy="16" r="13" fill="none" stroke="#E8D5A3" stroke-width="4" opacity="0.3"/>
+  <!-- Anel direito — corpo principal -->
+  <circle cx="54" cy="16" r="12" fill="none" stroke="#C9A84C" stroke-width="2.2"/>
+  <!-- Reflexo sutil no anel direito -->
+  <path d="M 46,9 C 48,7 52,6 56,8" fill="none" stroke="#E8D5A3" stroke-width="1.0" stroke-linecap="round" opacity="0.6"/>
+  
+  <!-- Repintar a parte frontal do anel direito sobre o recorte -->
+  <path d="M 42.5,9 C 46,8 50,7.5 54,8 C 58,8.5 62,10 64.5,13 C 66.5,15 67,16 66,18 C 65,20.5 63,23 60,25 C 57,27 54.5,28 51,27.5 C 47,27 44,25 42.5,22.5"
+        fill="none" stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round"/>
+</svg>
