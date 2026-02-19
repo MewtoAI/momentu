@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useReducer } from 'react'
-import { Stage, Layer, Rect, Text, Image as KonvaImage, Group } from 'react-konva'
+import { Stage, Layer, Rect, Text, Image as KonvaImage, Group, Path, Circle } from 'react-konva'
 import { useRouter } from 'next/navigation'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -37,6 +37,44 @@ export interface PageState {
   textSlots: TextSlot[]
 }
 
+// ─── Decorative Types ─────────────────────────────────────────────────────────
+
+interface DecorativeElement {
+  type: 'path' | 'circle' | 'ring' | 'dots'
+  x: number
+  y: number
+  data?: string   // SVG path data for type='path'
+  radius?: number
+  color: string
+  opacity?: number
+  scale?: number
+}
+
+// ─── Font Loader Hook ─────────────────────────────────────────────────────────
+
+function useFontLoader(fonts: string[]): boolean {
+  const [loaded, setLoaded] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    // Inject link tags for each font
+    fonts.forEach(font => {
+      const id = `gfont-${font.replace(/\s/g, '-')}`
+      if (!document.getElementById(id)) {
+        const link = document.createElement('link')
+        link.id = id
+        link.rel = 'stylesheet'
+        link.href = `https://fonts.googleapis.com/css2?family=${font.replace(/\s/g, '+')}:ital,wght@0,400;0,700;1,400&display=swap`
+        document.head.appendChild(link)
+      }
+    })
+    // Wait for fonts to load
+    Promise.all(
+      fonts.map(f => document.fonts.load(`bold 20px "${f}"`))
+    ).then(() => setLoaded(true)).catch(() => setLoaded(true))
+  }, [fonts]) // eslint-disable-line react-hooks/exhaustive-deps
+  return loaded
+}
+
 // ─── Template Configs ─────────────────────────────────────────────────────────
 
 interface TemplateConfig {
@@ -50,6 +88,13 @@ interface TemplateConfig {
     bg?: string
     bgGradient?: [string, string]
   }>
+  decoratives?: {
+    cover?: DecorativeElement[]
+    text_focus?: DecorativeElement[]
+    back_cover?: DecorativeElement[]
+    photo_single?: DecorativeElement[]
+    photo_double?: DecorativeElement[]
+  }
 }
 
 const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
@@ -68,6 +113,22 @@ const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
       { type: 'photo_double', bg: '#FFF0F3' },
       { type: 'back_cover', bg: '#C9184A' },
     ],
+    decoratives: {
+      cover: [
+        { type: 'path', x: 15, y: 15, color: 'rgba(255,255,255,0.35)',
+          data: 'M15,30 C15,20 0,10 0,0 C0,-10 10,-15 15,-10 C20,-15 30,-10 30,0 C30,10 15,20 15,30Z' },
+        { type: 'circle', x: 270, y: 25, radius: 15, color: 'rgba(255,255,255,0.2)' },
+        { type: 'circle', x: 285, y: 15, radius: 8, color: 'rgba(255,255,255,0.15)' },
+      ],
+      text_focus: [
+        { type: 'path', x: 130, y: 50, color: '#C9184A', opacity: 0.15,
+          data: 'M15,30 C15,20 0,10 0,0 C0,-10 10,-15 15,-10 C20,-15 30,-10 30,0 C30,10 15,20 15,30Z' },
+      ],
+      back_cover: [
+        { type: 'circle', x: 150, y: 60, radius: 40, color: 'rgba(255,255,255,0.08)' },
+        { type: 'circle', x: 150, y: 60, radius: 25, color: 'rgba(255,255,255,0.08)' },
+      ],
+    },
   },
   'primeiro-sorriso': {
     color: '#B5D8CC', color2: '#F9C9D4', bg: '#FEF9EF',
@@ -86,6 +147,28 @@ const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
       { type: 'photo_single', bg: '#FEF9EF' },
       { type: 'back_cover', bg: '#B5D8CC' },
     ],
+    decoratives: {
+      cover: [
+        // Cloud (3 circles)
+        { type: 'circle', x: 30, y: 30, radius: 18, color: 'rgba(255,255,255,0.35)' },
+        { type: 'circle', x: 50, y: 22, radius: 22, color: 'rgba(255,255,255,0.35)' },
+        { type: 'circle', x: 70, y: 28, radius: 16, color: 'rgba(255,255,255,0.35)' },
+        // Stars
+        { type: 'path', x: 240, y: 20, color: 'rgba(255,255,255,0.6)',
+          data: 'M10,0 L12,7 L20,7 L14,11 L16,18 L10,14 L4,18 L6,11 L0,7 L8,7 Z' },
+        { type: 'path', x: 260, y: 45, color: 'rgba(255,255,255,0.4)',
+          data: 'M6,0 L7,4 L12,4 L9,7 L10,11 L6,9 L2,11 L3,7 L0,4 L5,4 Z' },
+      ],
+      text_focus: [
+        { type: 'circle', x: 15, y: 15, radius: 12, color: '#B5D8CC', opacity: 0.25 },
+        { type: 'circle', x: 275, y: 275, radius: 15, color: '#F9C9D4', opacity: 0.3 },
+      ],
+      back_cover: [
+        { type: 'circle', x: 30, y: 25, radius: 16, color: 'rgba(255,255,255,0.3)' },
+        { type: 'circle', x: 50, y: 18, radius: 20, color: 'rgba(255,255,255,0.3)' },
+        { type: 'circle', x: 68, y: 24, radius: 14, color: 'rgba(255,255,255,0.3)' },
+      ],
+    },
   },
   'nossa-familia': {
     color: '#E07A5F', color2: '#F2CC8F', bg: '#F4F1DE',
@@ -102,6 +185,22 @@ const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
       { type: 'photo_single', bg: '#F4F1DE' },
       { type: 'back_cover', bg: '#3D405B' },
     ],
+    decoratives: {
+      cover: [
+        { type: 'path', x: 5, y: 5, color: 'rgba(255,255,255,0.3)',
+          data: 'M20,0 L280,0 Q290,0 290,10 L290,290 Q290,295 280,295 L20,295 Q10,295 10,285 L10,10 Q10,0 20,0 Z' },
+        { type: 'circle', x: 5, y: 5, radius: 15, color: 'rgba(255,255,255,0.2)' },
+        { type: 'circle', x: 290, y: 5, radius: 15, color: 'rgba(255,255,255,0.2)' },
+      ],
+      text_focus: [
+        { type: 'circle', x: 10, y: 10, radius: 12, color: '#E07A5F', opacity: 0.15 },
+        { type: 'circle', x: 280, y: 280, radius: 15, color: '#E07A5F', opacity: 0.12 },
+      ],
+      back_cover: [
+        { type: 'path', x: 5, y: 5, color: 'rgba(255,255,255,0.25)',
+          data: 'M20,0 L280,0 Q290,0 290,10 L290,290 Q290,295 280,295 L20,295 Q10,295 10,285 L10,10 Q10,0 20,0 Z' },
+      ],
+    },
   },
   'instante': {
     color: '#1A1A2E', color2: '#C9A84C', bg: '#F5F5F8',
@@ -116,6 +215,23 @@ const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
       { type: 'photo_single', bg: '#FFFFFF' },
       { type: 'back_cover', bg: '#1A1A2E' },
     ],
+    decoratives: {
+      cover: [
+        { type: 'path', x: 0, y: 0, color: 'rgba(201,168,76,0.4)',
+          data: 'M0,0 L300,0 M0,300 L300,300' },
+        { type: 'circle', x: 142, y: 20, radius: 6, color: '#C9A84C', opacity: 0.7 },
+      ],
+      text_focus: [
+        { type: 'path', x: 30, y: 70, color: '#1A1A2E', opacity: 0.1,
+          data: 'M0,0 L240,0' },
+        { type: 'circle', x: 145, y: 68, radius: 3, color: '#C9A84C', opacity: 0.8 },
+      ],
+      back_cover: [
+        { type: 'path', x: 0, y: 0, color: 'rgba(201,168,76,0.35)',
+          data: 'M0,0 L300,0 M0,300 L300,300' },
+        { type: 'circle', x: 142, y: 150, radius: 8, color: '#C9A84C', opacity: 0.6 },
+      ],
+    },
   },
   'mundo-afora': {
     color: '#2D6A4F', color2: '#74C69D', bg: '#D8F3DC',
@@ -134,6 +250,23 @@ const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
       { type: 'photo_single', bg: '#D8F3DC' },
       { type: 'back_cover', bg: '#2D6A4F' },
     ],
+    decoratives: {
+      cover: [
+        { type: 'ring', x: 230, y: 20, radius: 30, color: 'rgba(255,255,255,0.35)' },
+        { type: 'circle', x: 250, y: 40, radius: 4, color: 'rgba(255,255,255,0.8)' },
+        { type: 'path', x: 0, y: 250, color: 'rgba(255,255,255,0.2)',
+          data: 'M0,20 Q75,0 150,20 Q225,40 300,20 L300,40 Q225,60 150,40 Q75,20 0,40 Z' },
+      ],
+      text_focus: [
+        { type: 'ring', x: 125, y: 20, radius: 20, color: '#2D6A4F', opacity: 0.2 },
+      ],
+      back_cover: [
+        { type: 'path', x: 0, y: 220, color: 'rgba(255,255,255,0.25)',
+          data: 'M0,20 Q75,0 150,20 Q225,40 300,20 L300,40 Q225,60 150,40 Q75,20 0,40 Z' },
+        { type: 'path', x: 0, y: 255, color: 'rgba(255,255,255,0.15)',
+          data: 'M0,20 Q75,0 150,20 Q225,40 300,20 L300,40 Q225,60 150,40 Q75,20 0,40 Z' },
+      ],
+    },
   },
   'casamento-dourado': {
     color: '#C9A84C', color2: '#E8D5A3', bg: '#FAF6EE',
@@ -150,6 +283,22 @@ const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
       { type: 'photo_double', bg: '#FAF6EE' },
       { type: 'back_cover', bg: '#C9A84C' },
     ],
+    decoratives: {
+      cover: [
+        { type: 'ring', x: 130, y: 50, radius: 22, color: 'rgba(255,255,255,0.55)' },
+        { type: 'ring', x: 155, y: 50, radius: 22, color: 'rgba(255,255,255,0.55)' },
+        { type: 'circle', x: 20, y: 20, radius: 30, color: 'rgba(255,255,255,0.12)' },
+        { type: 'circle', x: 280, y: 280, radius: 40, color: 'rgba(255,255,255,0.10)' },
+      ],
+      text_focus: [
+        { type: 'ring', x: 135, y: 30, radius: 18, color: '#C9A84C', opacity: 0.3 },
+        { type: 'ring', x: 158, y: 30, radius: 18, color: '#C9A84C', opacity: 0.3 },
+      ],
+      back_cover: [
+        { type: 'ring', x: 125, y: 80, radius: 25, color: 'rgba(255,255,255,0.4)' },
+        { type: 'ring', x: 155, y: 80, radius: 25, color: 'rgba(255,255,255,0.4)' },
+      ],
+    },
   },
   'pequeno-universo': {
     color: '#9B72CF', color2: '#C3A8E0', bg: '#F4F0FF',
@@ -166,6 +315,21 @@ const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
       { type: 'photo_double', bg: '#F4F0FF' },
       { type: 'back_cover', bg: '#9B72CF' },
     ],
+    decoratives: {
+      cover: [
+        { type: 'dots', x: 0, y: 0, color: 'rgba(255,255,255,0.6)' },
+        { type: 'path', x: 240, y: 20, color: 'rgba(255,255,255,0.45)',
+          data: 'M20,0 C20,11 11,20 0,20 C5,20 20,11 20,0Z' },
+      ],
+      text_focus: [
+        { type: 'path', x: 10, y: 10, color: '#9B72CF', opacity: 0.2,
+          data: 'M10,0 L12,7 L20,7 L14,11 L16,18 L10,14 L4,18 L6,11 L0,7 L8,7 Z' },
+      ],
+      back_cover: [
+        { type: 'circle', x: 150, y: 50, radius: 35, color: 'rgba(255,255,255,0.1)' },
+        { type: 'dots', x: 0, y: 0, color: 'rgba(255,255,255,0.3)' },
+      ],
+    },
   },
   'raizes': {
     color: '#8B5E3C', color2: '#D4956A', bg: '#F5EDD5',
@@ -184,6 +348,24 @@ const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
       { type: 'photo_double', bg: '#F5EDD5' },
       { type: 'back_cover', bg: '#8B5E3C' },
     ],
+    decoratives: {
+      cover: [
+        { type: 'path', x: 0, y: 200, color: 'rgba(255,255,255,0.25)',
+          data: 'M0,80 Q40,60 80,80 Q60,40 80,0 M80,80 Q100,70 120,85' },
+        { type: 'path', x: 200, y: 0, color: 'rgba(255,255,255,0.20)',
+          data: 'M100,80 Q60,60 20,80 Q40,40 20,0 M20,80 Q0,70 -20,85' },
+      ],
+      text_focus: [
+        { type: 'circle', x: 10, y: 10, radius: 20, color: '#8B5E3C', opacity: 0.12 },
+        { type: 'circle', x: 280, y: 280, radius: 25, color: '#8B5E3C', opacity: 0.10 },
+      ],
+      back_cover: [
+        { type: 'path', x: 0, y: 180, color: 'rgba(255,255,255,0.2)',
+          data: 'M0,80 Q40,60 80,80 Q60,40 80,0' },
+        { type: 'path', x: 220, y: 0, color: 'rgba(255,255,255,0.15)',
+          data: 'M80,80 Q40,60 0,80 Q20,40 0,0' },
+      ],
+    },
   },
   'conquista': {
     color: '#1B2D5E', color2: '#C9A84C', bg: '#F0F3FA',
@@ -200,6 +382,21 @@ const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
       { type: 'photo_double', bg: '#F0F3FA' },
       { type: 'back_cover', bg: '#1B2D5E' },
     ],
+    decoratives: {
+      cover: [
+        { type: 'path', x: 120, y: 20, color: 'rgba(201,168,76,0.5)',
+          data: 'M30,0 L37,22 L60,22 L42,36 L48,58 L30,44 L12,58 L18,36 L0,22 L23,22 Z' },
+        { type: 'circle', x: 250, y: 250, radius: 50, color: 'rgba(255,255,255,0.07)' },
+      ],
+      text_focus: [
+        { type: 'path', x: 125, y: 30, color: '#C9A84C', opacity: 0.25,
+          data: 'M25,0 L31,18 L50,18 L35,29 L40,47 L25,36 L10,47 L15,29 L0,18 L19,18 Z' },
+      ],
+      back_cover: [
+        { type: 'path', x: 115, y: 40, color: 'rgba(201,168,76,0.45)',
+          data: 'M35,0 L43,25 L70,25 L49,41 L56,66 L35,51 L14,66 L21,41 L0,25 L27,25 Z' },
+      ],
+    },
   },
   'doce-vida': {
     color: '#FF6B8A', color2: '#FFD166', bg: '#F0FBFF',
@@ -216,6 +413,23 @@ const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
       { type: 'photo_double', bg: '#F0FBFF' },
       { type: 'back_cover', bg: '#FF6B8A' },
     ],
+    decoratives: {
+      cover: [
+        { type: 'circle', x: 40, y: 30, radius: 20, color: 'rgba(255,255,255,0.3)' },
+        { type: 'circle', x: 240, y: 20, radius: 16, color: 'rgba(255,255,255,0.25)' },
+        { type: 'circle', x: 260, y: 50, radius: 22, color: 'rgba(255,255,255,0.2)' },
+        { type: 'dots', x: 0, y: 0, color: 'rgba(255,255,255,0.4)' },
+      ],
+      text_focus: [
+        { type: 'circle', x: 20, y: 20, radius: 14, color: '#FF6B8A', opacity: 0.2 },
+        { type: 'circle', x: 265, y: 260, radius: 14, color: '#FFD166', opacity: 0.2 },
+      ],
+      back_cover: [
+        { type: 'circle', x: 50, y: 40, radius: 18, color: 'rgba(255,255,255,0.3)' },
+        { type: 'circle', x: 240, y: 30, radius: 14, color: 'rgba(255,255,255,0.25)' },
+        { type: 'dots', x: 0, y: 0, color: 'rgba(255,255,255,0.35)' },
+      ],
+    },
   },
 }
 
@@ -313,11 +527,13 @@ function loadImageIntoCache(url: string, onLoad: () => void): void {
 interface KonvaPhotoSlotProps {
   slot: PhotoSlot
   index: number
+  templateColor: string
+  templateBg: string
   onPhotoClick: (idx: number) => void
   forceRender: () => void
 }
 
-function KonvaPhotoSlot({ slot, index, onPhotoClick, forceRender }: KonvaPhotoSlotProps) {
+function KonvaPhotoSlot({ slot, index, templateColor, templateBg, onPhotoClick, forceRender }: KonvaPhotoSlotProps) {
   useEffect(() => {
     if (slot.url && imageCache[slot.url] === undefined) {
       loadImageIntoCache(slot.url, forceRender)
@@ -348,7 +564,7 @@ function KonvaPhotoSlot({ slot, index, onPhotoClick, forceRender }: KonvaPhotoSl
         y={slot.y}
         width={slot.width}
         height={slot.height}
-        fill="#E8E4F0"
+        fill={templateBg}
         cornerRadius={4}
       />
       <Text
@@ -358,7 +574,7 @@ function KonvaPhotoSlot({ slot, index, onPhotoClick, forceRender }: KonvaPhotoSl
         text="📷"
         align="center"
         fontSize={22}
-        fill="#8C7B82"
+        fill={templateColor}
       />
       <Text
         x={slot.x}
@@ -367,9 +583,85 @@ function KonvaPhotoSlot({ slot, index, onPhotoClick, forceRender }: KonvaPhotoSl
         text="Tap para adicionar foto"
         align="center"
         fontSize={9}
-        fill="#8C7B82"
+        fill={templateColor}
+        opacity={0.7}
       />
     </Group>
+  )
+}
+
+// ─── Decoratives Renderer ─────────────────────────────────────────────────────
+
+interface DecorativesRendererProps {
+  elements: DecorativeElement[]
+}
+
+function DecorativesRenderer({ elements }: DecorativesRendererProps) {
+  return (
+    <>
+      {elements.map((dec, i) => {
+        if (dec.type === 'path') {
+          return (
+            <Path
+              key={i}
+              x={dec.x}
+              y={dec.y}
+              data={dec.data!}
+              fill={dec.color}
+              opacity={dec.opacity ?? 1}
+              listening={false}
+            />
+          )
+        }
+        if (dec.type === 'circle') {
+          return (
+            <Circle
+              key={i}
+              x={dec.x}
+              y={dec.y}
+              radius={dec.radius!}
+              fill={dec.color}
+              opacity={dec.opacity ?? 1}
+              listening={false}
+            />
+          )
+        }
+        if (dec.type === 'ring') {
+          return (
+            <Circle
+              key={i}
+              x={dec.x}
+              y={dec.y}
+              radius={dec.radius!}
+              stroke={dec.color}
+              strokeWidth={2}
+              fill="transparent"
+              opacity={dec.opacity ?? 1}
+              listening={false}
+            />
+          )
+        }
+        if (dec.type === 'dots') {
+          // 6×6 grid of small dots in the bottom-right corner
+          return (
+            <Group key={i} listening={false} opacity={0.4}>
+              {Array.from({ length: 6 }, (_, row) =>
+                Array.from({ length: 6 }, (_, col) => (
+                  <Circle
+                    key={`${row}-${col}`}
+                    x={230 + col * 10}
+                    y={230 + row * 10}
+                    radius={1.5}
+                    fill={dec.color}
+                  />
+                ))
+              )}
+            </Group>
+          )
+        }
+        return null
+      })}
+    </>
   )
 }
 
@@ -377,13 +669,16 @@ function KonvaPhotoSlot({ slot, index, onPhotoClick, forceRender }: KonvaPhotoSl
 
 interface PageCanvasProps {
   page: PageState
+  templateConfig: TemplateConfig
   activeTextSlotId: string | null
   onPhotoSlotClick: (idx: number) => void
   onTextSlotClick: (id: string) => void
   forceRender: () => void
 }
 
-function PageCanvas({ page, activeTextSlotId, onPhotoSlotClick, onTextSlotClick, forceRender }: PageCanvasProps) {
+function PageCanvas({ page, templateConfig, activeTextSlotId, onPhotoSlotClick, onTextSlotClick, forceRender }: PageCanvasProps) {
+  const pageDecorators = templateConfig.decoratives?.[page.type as keyof typeof templateConfig.decoratives]
+
   return (
     <Stage width={300} height={300}>
       <Layer>
@@ -405,6 +700,8 @@ function PageCanvas({ page, activeTextSlotId, onPhotoSlotClick, onTextSlotClick,
             key={`photo-${i}`}
             slot={slot}
             index={i}
+            templateColor={templateConfig.color}
+            templateBg={templateConfig.bg}
             onPhotoClick={onPhotoSlotClick}
             forceRender={forceRender}
           />
@@ -448,6 +745,11 @@ function PageCanvas({ page, activeTextSlotId, onPhotoSlotClick, onTextSlotClick,
             />
           </Group>
         ))}
+
+        {/* Decorative elements for this page type */}
+        {pageDecorators && pageDecorators.length > 0 && (
+          <DecorativesRenderer elements={pageDecorators} />
+        )}
       </Layer>
     </Stage>
   )
@@ -472,6 +774,9 @@ interface KonvaEditorProps {
 export default function KonvaEditor({ templateId }: KonvaEditorProps) {
   const router = useRouter()
   const config = TEMPLATE_CONFIGS[templateId] || TEMPLATE_CONFIGS['amor-infinito']
+
+  // Load all fonts for this template before rendering canvas
+  const fontsLoaded = useFontLoader([config.font, config.bodyFont])
 
   const [albumTitle, setAlbumTitle] = useState(config.font === 'Playfair Display' ? 'Nosso Álbum' : 'Meu Álbum')
   const [activePage, setActivePage] = useState(0)
@@ -691,15 +996,32 @@ export default function KonvaEditor({ templateId }: KonvaEditorProps) {
             lineHeight: 0,
           }}
         >
-          {currentPage && (
+          {currentPage && !fontsLoaded ? (
+            /* Font loading placeholder */
+            <div
+              style={{
+                width: 300,
+                height: 300,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: currentPage.bgGradient
+                  ? `linear-gradient(135deg, ${currentPage.bgGradient[0]}, ${currentPage.bgGradient[1]})`
+                  : currentPage.bg,
+              }}
+            >
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>Carregando…</span>
+            </div>
+          ) : currentPage && fontsLoaded ? (
             <PageCanvas
               page={currentPage}
+              templateConfig={config}
               activeTextSlotId={activeTextSlotId}
               onPhotoSlotClick={handlePhotoSlotClick}
               onTextSlotClick={handleTextSlotClick}
               forceRender={forceRender}
             />
-          )}
+          ) : null}
         </div>
         <p className="text-xs mt-3" style={{ color: '#8C7B82' }}>
           Pág {activePage + 1} de {pages.length} · {PAGE_TYPE_LABELS[currentPage?.type || 'cover']}
