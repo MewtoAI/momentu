@@ -1,555 +1,509 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import type { AlbumFormat, AlbumPurpose } from '@/lib/types'
+import { SparkleIcon } from '@/components/icons'
+import type {
+  AlbumPurpose,
+  AlbumStyle,
+  AlbumOccasion,
+  DigitalPlatform,
+  AlbumQuestionnaire,
+} from '@/lib/types'
+import { PRINT_PRICING, DIGITAL_PRICE } from '@/lib/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface OnboardingState {
-  purpose?: AlbumPurpose
-  format?: AlbumFormat
-  pageCount?: number
-  price?: number
-  templateId?: string
+interface WizardState {
+  step: number
+  questionnaire: Partial<AlbumQuestionnaire>
+  referenceAlbumId?: string
 }
 
-// ─── Templates list (must match konva-editor TEMPLATE_CONFIGS) ───────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-const TEMPLATES = [
-  { slug: 'amor-infinito',     name: 'Amor Infinito',     category: 'casal',      gradientFrom: '#C9184A', gradientTo: '#FF758F',   bgAccent: '#FFF0F3', textAccent: '#2D0914', description: 'Para eternizar sua história de amor', thumbnail: null },
-  { slug: 'primeiro-sorriso',  name: 'Primeiro Sorriso',  category: 'bebe',       gradientFrom: '#B5D8CC', gradientTo: '#F9C9D4',   bgAccent: '#FEF9EF', textAccent: '#3A4A45', description: 'Do primeiro dia ao primeiro ano', thumbnail: null },
-  { slug: 'nossa-familia',     name: 'Nossa Família',     category: 'familia',    gradientFrom: '#E07A5F', gradientTo: '#F2CC8F',   bgAccent: '#F4F1DE', textAccent: '#3D405B', description: 'Memórias que unem gerações', thumbnail: null },
-  { slug: 'instante',          name: 'Instante',          category: 'minimalista',gradientFrom: '#1A1A2E', gradientTo: '#4A4A6E',   bgAccent: '#F5F5F8', textAccent: '#1A1A2E', description: 'Elegância no silêncio das imagens', thumbnail: null },
-  { slug: 'mundo-afora',       name: 'Mundo Afora',       category: 'viagem',     gradientFrom: '#2D6A4F', gradientTo: '#74C69D',   bgAccent: '#D8F3DC', textAccent: '#1B4332', description: 'Aventuras que merecem ser guardadas', thumbnail: null },
-  { slug: 'casamento-dourado', name: 'Casamento Dourado', category: 'casal',      gradientFrom: '#B8860B', gradientTo: '#F5DEB3',   bgAccent: '#FFFDF5', textAccent: '#3D2B00', description: 'Luxo e elegância para o dia mais especial', thumbnail: '/templates/casamento-dourado/thumbnail.jpg' },
-  { slug: 'pequeno-universo',  name: 'Pequeno Universo',  category: 'bebe',       gradientFrom: '#B39DDB', gradientTo: '#E1BEE7',   bgAccent: '#F3E5F5', textAccent: '#311B92', description: 'Um universo de amor desde o primeiro dia', thumbnail: '/templates/pequeno-universo/thumbnail.jpg' },
-  { slug: 'raizes',            name: 'Raízes',            category: 'familia',    gradientFrom: '#8D6E63', gradientTo: '#D7CCC8',   bgAccent: '#FBE9E7', textAccent: '#3E2723', description: 'Histórias que atravessam gerações', thumbnail: '/templates/raizes/thumbnail.jpg' },
-  { slug: 'conquista',         name: 'Conquista',         category: 'formatura',  gradientFrom: '#1A237E', gradientTo: '#C9A84C',   bgAccent: '#E8EAF6', textAccent: '#0D0D2B', description: 'Celebre cada passo dessa jornada', thumbnail: '/templates/conquista/thumbnail.jpg' },
-  { slug: 'doce-vida',         name: 'Doce Vida',         category: 'aniversario',gradientFrom: '#FF7043', gradientTo: '#FFD54F',   bgAccent: '#FFF8E1', textAccent: '#BF360C', description: 'Cada ano é motivo pra sorrir e comemorar', thumbnail: '/templates/doce-vida/thumbnail.jpg' },
+const STYLE_OPTIONS: {
+  value: AlbumStyle
+  label: string
+  adjectives: string
+  bg: string
+}[] = [
+  {
+    value: 'romantic',
+    label: 'Romântico',
+    adjectives: 'Delicado • Floral • Elegante',
+    bg: 'rgb(252,231,243)',
+  },
+  {
+    value: 'classic',
+    label: 'Clássico',
+    adjectives: 'Atemporal • Limpo • Sofisticado',
+    bg: 'rgb(241,245,249)',
+  },
+  {
+    value: 'vibrant',
+    label: 'Vibrante',
+    adjectives: 'Colorido • Moderno • Alegre',
+    bg: 'rgb(255,237,213)',
+  },
+  {
+    value: 'minimal',
+    label: 'Minimalista',
+    adjectives: 'Clean • Focado • Minimalista',
+    bg: 'rgb(248,250,252)',
+  },
+  {
+    value: 'vintage',
+    label: 'Vintage',
+    adjectives: 'Nostálgico • Cálido • Texturizado',
+    bg: 'rgb(254,243,199)',
+  },
+  {
+    value: 'bohemian',
+    label: 'Boêmio',
+    adjectives: 'Orgânico • Natural • Artístico',
+    bg: 'rgb(209,250,229)',
+  },
 ]
 
-type CategoryFilter = 'todos' | 'casal' | 'bebe' | 'familia' | 'formatura' | 'viagem' | 'minimalista' | 'aniversario'
-
-const CATEGORY_FILTERS: { value: CategoryFilter; label: string }[] = [
-  { value: 'todos', label: 'Todos' },
-  { value: 'casal', label: 'Casal' },
-  { value: 'bebe', label: 'Bebê' },
-  { value: 'familia', label: 'Família' },
-  { value: 'formatura', label: 'Formatura' },
-  { value: 'viagem', label: 'Viagem' },
-  { value: 'minimalista', label: 'Minimalista' },
-  { value: 'aniversario', label: 'Aniversário' },
+const OCCASION_OPTIONS: {
+  value: AlbumOccasion
+  label: string
+  emoji: string
+}[] = [
+  { value: 'wedding', label: 'Casamento', emoji: '💍' },
+  { value: 'birthday', label: 'Aniversário', emoji: '🎂' },
+  { value: 'baby', label: 'Bebê', emoji: '👶' },
+  { value: 'travel', label: 'Viagem', emoji: '✈️' },
+  { value: 'family', label: 'Família', emoji: '👨‍👩‍👧‍👦' },
+  { value: 'graduation', label: 'Formatura', emoji: '🎓' },
+  { value: 'other', label: 'Outro', emoji: '✨' },
 ]
 
-// ─── Price calc ───────────────────────────────────────────────────────────────
+const COLOR_PALETTE = [
+  '#C9607A',
+  '#E8A4B4',
+  '#C9A84C',
+  '#F5DEB3',
+  '#8B7355',
+  '#D4A5A5',
+  '#7B9EA6',
+  '#A8C5B8',
+  '#9B72CF',
+  '#C8A9D1',
+  '#4A4A4A',
+  '#B5B5B5',
+]
 
-function calcPrice(pageCount: number): number {
-  if (pageCount <= 16) return 14.90
-  if (pageCount <= 24) return 19.90
-  return 24.90
+const PRINT_PAGE_OPTIONS = [
+  { pages: 10, price: 39.9, hint: 'Ideal para ~20 fotos' },
+  { pages: 12, price: 44.9, hint: 'Ideal para ~25 fotos' },
+  { pages: 15, price: 49.9, hint: 'Ideal para ~30 fotos' },
+  { pages: 20, price: 59.9, hint: 'Ideal para ~40 fotos' },
+]
+
+const DIGITAL_PLATFORM_OPTIONS: {
+  value: DigitalPlatform
+  label: string
+  emoji: string
+  hint: string
+}[] = [
+  { value: 'instagram_feed', label: 'Instagram Feed', emoji: '📸', hint: 'Carrossel 1:1 • até 10 fotos' },
+  { value: 'instagram_stories', label: 'Stories/Reels', emoji: '📱', hint: 'Vertical 9:16 • até 10 fotos' },
+  { value: 'facebook', label: 'Facebook', emoji: '📘', hint: 'Álbum otimizado' },
+  {
+    value: 'all',
+    label: 'Todos os formatos',
+    emoji: '🌐',
+    hint: 'Receba para todas as plataformas',
+  },
+]
+
+// ─── Slide variants ───────────────────────────────────────────────────────────
+
+const slideVariants = {
+  initial: { x: 30, opacity: 0 },
+  animate: { x: 0, opacity: 1, transition: { duration: 0.25, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] } },
+  exit: { x: -30, opacity: 0, transition: { duration: 0.2 } },
 }
 
-function pageHint(pageCount: number): string {
-  const photoCount = Math.round(pageCount * 1.5)
-  return `${pageCount} páginas = espaço para ~${photoCount} fotos`
+// ─── Total steps (depends on product type) ───────────────────────────────────
+
+function getTotalSteps(purpose?: AlbumPurpose) {
+  return 6
 }
 
-// ─── Progress Bar ─────────────────────────────────────────────────────────────
+// ─── Wizard ───────────────────────────────────────────────────────────────────
 
-function ProgressBar({ step, total = 4 }: { step: number; total?: number }) {
-  return (
-    <div className="flex items-center justify-center gap-0 mb-8">
-      {Array.from({ length: total }, (_, i) => (
-        <div key={i} className="flex items-center">
-          <div
-            className="flex items-center justify-center rounded-full text-xs font-bold transition-all duration-300"
-            style={{
-              width: 28, height: 28,
-              backgroundColor: i + 1 <= step ? '#C9607A' : '#EDE8E6',
-              color: i + 1 <= step ? '#FFFFFF' : '#8C7B82',
-            }}
-          >
-            {i + 1 < step ? '✓' : i + 1}
-          </div>
-          {i < total - 1 && (
-            <div
-              className="h-0.5 transition-all duration-300"
-              style={{
-                width: 40,
-                backgroundColor: i + 1 < step ? '#C9607A' : '#EDE8E6',
-              }}
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  )
-}
+function CriarInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const refAlbumId = searchParams.get('ref') ?? undefined
 
-// ─── Step 1: Purpose ──────────────────────────────────────────────────────────
+  const [state, setState] = useState<WizardState>({
+    step: 1,
+    questionnaire: refAlbumId ? { referenceAlbumId: refAlbumId } : {},
+    referenceAlbumId: refAlbumId,
+  })
 
-function Step1Purpose({ onSelect }: { onSelect: (purpose: AlbumPurpose) => void }) {
-  return (
-    <div className="flex flex-col gap-4">
-      <h2 className="text-2xl font-bold text-center" style={{ color: '#2C2125', fontFamily: 'Playfair Display, Georgia, serif' }}>
-        Para que é seu álbum?
-      </h2>
-      <p className="text-sm text-center mb-2" style={{ color: '#8C7B82' }}>
-        Isso define a qualidade e o formato do arquivo final
-      </p>
+  const [specialMessage, setSpecialMessage] = useState('')
+  const [referenceNotes, setReferenceNotes] = useState('')
+  const [customOccasion, setCustomOccasion] = useState('')
 
-      {/* Print card */}
-      <button
-        onClick={() => onSelect('print')}
-        className="w-full flex flex-col items-start p-5 rounded-2xl border-2 transition-all duration-150 active:scale-[0.98] text-left"
-        style={{ backgroundColor: '#FFFFFF', borderColor: '#EDE8E6', cursor: 'pointer' }}
-      >
-        <div className="flex items-center gap-3 mb-2">
-          <span style={{ fontSize: 32 }}>📖</span>
-          <div>
-            <p className="font-bold text-base" style={{ color: '#2C2125' }}>Para imprimir na gráfica</p>
-            <p className="text-xs mt-0.5" style={{ color: '#8C7B82' }}>Arquivo PDF profissional, pronto para enviar para a gráfica</p>
-          </div>
-        </div>
-        <span
-          className="text-[11px] font-semibold px-3 py-1 rounded-full mt-1"
-          style={{ backgroundColor: '#F7E8EC', color: '#C9607A' }}
-        >
-          Alta qualidade • 300 DPI • Print-ready
-        </span>
-      </button>
+  const { step, questionnaire } = state
+  const totalSteps = 6
+  const progress = (step / totalSteps) * 100
 
-      {/* Digital card */}
-      <button
-        onClick={() => onSelect('digital')}
-        className="w-full flex flex-col items-start p-5 rounded-2xl border-2 transition-all duration-150 active:scale-[0.98] text-left"
-        style={{ backgroundColor: '#FFFFFF', borderColor: '#EDE8E6', cursor: 'pointer' }}
-      >
-        <div className="flex items-center gap-3 mb-2">
-          <span style={{ fontSize: 32 }}>📱</span>
-          <div>
-            <p className="font-bold text-base" style={{ color: '#2C2125' }}>Para guardar digitalmente</p>
-            <p className="text-xs mt-0.5" style={{ color: '#8C7B82' }}>Compartilhar, salvar e presentear em alta resolução</p>
-          </div>
-        </div>
-        <span
-          className="text-[11px] font-semibold px-3 py-1 rounded-full mt-1"
-          style={{ backgroundColor: '#E8F5E9', color: '#2D6A4F' }}
-        >
-          1080px • Redes sociais • WhatsApp
-        </span>
-      </button>
-    </div>
-  )
-}
+  function advance(patch: Partial<AlbumQuestionnaire>) {
+    setState((prev) => ({
+      ...prev,
+      step: prev.step + 1,
+      questionnaire: { ...prev.questionnaire, ...patch },
+    }))
+  }
 
-// ─── Step 2A: Print Size ──────────────────────────────────────────────────────
+  function goBack() {
+    if (step > 1) setState((prev) => ({ ...prev, step: prev.step - 1 }))
+  }
 
-function Step2APrintSize({ onSelect }: { onSelect: (format: AlbumFormat) => void }) {
-  const options: { format: AlbumFormat; label: string; sublabel: string; badge: string; hint?: string; aspect: [number, number] }[] = [
-    { format: 'print_20x20', label: '20×20 cm', sublabel: 'Quadrado', badge: 'Popular ⭐', hint: 'O mais pedido nas gráficas', aspect: [1, 1] },
-    { format: 'print_a4',    label: 'A4 · 21×30', sublabel: 'Retrato', badge: 'Clássico', aspect: [210, 297] },
-    { format: 'print_15x21', label: '15×21 cm',   sublabel: 'Mini',    badge: 'Compacto', aspect: [150, 210] },
-  ]
+  function finish(patch?: Partial<AlbumQuestionnaire>) {
+    const final: AlbumQuestionnaire = {
+      ...questionnaire,
+      ...patch,
+      purpose: questionnaire.purpose!,
+      specialMessage: specialMessage || undefined,
+      referenceNotes: referenceNotes || undefined,
+    }
+    sessionStorage.setItem('momentu_questionnaire', JSON.stringify(final))
+    router.push('/criar/amostra')
+  }
 
-  return (
-    <div className="flex flex-col gap-4">
-      <h2 className="text-2xl font-bold text-center" style={{ color: '#2C2125', fontFamily: 'Playfair Display, Georgia, serif' }}>
-        Qual o tamanho do álbum?
-      </h2>
-
-      <div className="flex gap-3 mt-2">
-        {options.map(opt => {
-          const [w, h] = opt.aspect
-          const maxH = 96
-          const maxW = 80
-          const ratio = w / h
-          const displayH = Math.min(maxH, maxW / ratio)
-          const displayW = displayH * ratio
-
-          return (
-            <button
-              key={opt.format}
-              onClick={() => onSelect(opt.format)}
-              className="flex-1 flex flex-col items-center gap-3 p-3 rounded-2xl border-2 transition-all duration-150 active:scale-95"
-              style={{ backgroundColor: '#FFFFFF', borderColor: '#EDE8E6', cursor: 'pointer' }}
-            >
-              {/* Visual aspect ratio representation */}
-              <div className="flex items-end justify-center" style={{ height: maxH + 8 }}>
-                <div
-                  className="rounded-sm"
-                  style={{
-                    width: displayW,
-                    height: displayH,
-                    background: 'linear-gradient(145deg, #C9607A22, #C9607A55)',
-                    border: '1.5px solid #C9607A88',
-                  }}
-                />
-              </div>
-              <div className="text-center">
-                <p className="font-bold text-sm" style={{ color: '#2C2125' }}>{opt.label}</p>
-                <p className="text-xs" style={{ color: '#8C7B82' }}>{opt.sublabel}</p>
-                <span
-                  className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1"
-                  style={{ backgroundColor: '#F7E8EC', color: '#C9607A' }}
-                >
-                  {opt.badge}
-                </span>
-              </div>
-            </button>
-          )
-        })}
-      </div>
-
-      <p className="text-xs text-center mt-2" style={{ color: '#8C7B82' }}>
-        💡 Dúvida? O 20×20cm é o mais pedido nas gráficas.
-      </p>
-    </div>
-  )
-}
-
-// ─── Step 2B: Digital Format ──────────────────────────────────────────────────
-
-function Step2BDigitalFormat({ onSelect }: { onSelect: (format: AlbumFormat) => void }) {
-  const options: { format: AlbumFormat; label: string; sublabel: string; desc: string; aspect: [number, number] }[] = [
-    { format: 'digital_square', label: 'Quadrado 1:1', sublabel: 'Instagram Feed', desc: '1080×1080px', aspect: [1, 1] },
-    { format: 'digital_story',  label: 'Story 9:16',   sublabel: 'Instagram/TikTok', desc: '1080×1920px', aspect: [9, 16] },
-    // Digital landscape not in FORMAT_SPECS but we keep the UI note
-  ]
-
-  return (
-    <div className="flex flex-col gap-4">
-      <h2 className="text-2xl font-bold text-center" style={{ color: '#2C2125', fontFamily: 'Playfair Display, Georgia, serif' }}>
-        Escolha o formato
-      </h2>
-
-      <div className="flex gap-3 mt-2 justify-center">
-        {options.map(opt => {
-          const [w, h] = opt.aspect
-          const maxH = 100
-          const maxW = 70
-          const ratio = w / h
-          const displayH = Math.min(maxH, maxW / ratio)
-          const displayW = displayH * ratio
-
-          return (
-            <button
-              key={opt.format}
-              onClick={() => onSelect(opt.format)}
-              className="flex flex-col items-center gap-3 px-4 py-4 rounded-2xl border-2 transition-all duration-150 active:scale-95"
-              style={{ backgroundColor: '#FFFFFF', borderColor: '#EDE8E6', cursor: 'pointer', minWidth: 110 }}
-            >
-              <div className="flex items-center justify-center" style={{ height: maxH + 8, width: maxW + 8 }}>
-                <div
-                  className="rounded-sm"
-                  style={{
-                    width: displayW,
-                    height: displayH,
-                    background: 'linear-gradient(145deg, #2D6A4F22, #2D6A4F55)',
-                    border: '1.5px solid #2D6A4F88',
-                  }}
-                />
-              </div>
-              <div className="text-center">
-                <p className="font-bold text-sm" style={{ color: '#2C2125' }}>{opt.label}</p>
-                <p className="text-xs" style={{ color: '#8C7B82' }}>{opt.sublabel}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: '#8C7B82' }}>{opt.desc}</p>
-              </div>
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-// ─── Step 3: Page Count ───────────────────────────────────────────────────────
-
-const PAGE_COUNT_OPTIONS = [8, 12, 16, 20, 24, 30]
-
-function Step3PageCount({
-  selected,
-  onSelect,
-  onContinue,
-}: {
-  selected: number
-  onSelect: (n: number) => void
-  onContinue: () => void
-}) {
-  const price = calcPrice(selected)
-
-  return (
-    <div className="flex flex-col gap-4">
-      <h2 className="text-2xl font-bold text-center" style={{ color: '#2C2125', fontFamily: 'Playfair Display, Georgia, serif' }}>
-        Quantas páginas você quer?
-      </h2>
-      <p className="text-sm text-center" style={{ color: '#8C7B82' }}>
-        Recomendamos 16 páginas (~24 fotos)
-      </p>
-
-      {/* Page count chips */}
-      <div className="flex flex-wrap gap-2 justify-center mt-2">
-        {PAGE_COUNT_OPTIONS.map(n => (
+  // ─── Step 1: Product ────────────────────────────────────────────────────────
+  const Step1 = (
+    <div className="flex flex-col items-center gap-4 w-full max-w-lg mx-auto">
+      <h1 className="font-serif text-2xl text-[#2C1810] text-center">O que você quer criar?</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full mt-2">
+        {(
+          [
+            {
+              value: 'print' as AlbumPurpose,
+              emoji: '📖',
+              title: 'Álbum para imprimir na gráfica',
+              desc: 'Arquivo PDF profissional, pronto para enviar para a gráfica',
+              badge: 'Alta qualidade • 300 DPI • Print-ready',
+            },
+            {
+              value: 'digital' as AlbumPurpose,
+              emoji: '📱',
+              title: 'Conteúdo para redes sociais',
+              desc: 'Carrossel e Stories prontos para postar',
+              badge: 'Instagram • TikTok • Facebook',
+            },
+          ] as const
+        ).map((opt) => (
           <button
-            key={n}
-            onClick={() => onSelect(n)}
-            className="px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all duration-150"
-            style={{
-              backgroundColor: selected === n ? '#C9607A' : '#FFFFFF',
-              borderColor: selected === n ? '#C9607A' : '#EDE8E6',
-              color: selected === n ? '#FFFFFF' : '#8C7B82',
-              cursor: 'pointer',
-            }}
+            key={opt.value}
+            onClick={() => advance({ purpose: opt.value })}
+            className="flex flex-col items-start gap-3 p-5 bg-white rounded-2xl border-2 border-[#2C1810]/8 hover:border-[#C9607A]/40 hover:shadow-md transition-all text-left group"
           >
-            {n}{selected === n ? ' ✓' : ''}
-          </button>
-        ))}
-      </div>
-
-      {/* Hint */}
-      <p className="text-xs text-center" style={{ color: '#8C7B82' }}>
-        {pageHint(selected)}
-      </p>
-
-      {/* Pricing */}
-      <div
-        className="p-4 rounded-2xl text-center mt-2"
-        style={{ backgroundColor: '#F7E8EC' }}
-      >
-        <p className="text-3xl font-bold" style={{ color: '#C9607A' }}>
-          R$ {price.toFixed(2).replace('.', ',')}
-        </p>
-        <p className="text-xs mt-1" style={{ color: '#A8485F' }}>
-          {selected <= 16 ? 'até 16 páginas' : selected <= 24 ? `até 24 páginas (+R$ 5,00)` : `até 30 páginas (+R$ 10,00)`}
-        </p>
-      </div>
-
-      <button
-        onClick={onContinue}
-        className="w-full py-4 rounded-full font-bold text-white transition-all duration-150 active:scale-[0.98]"
-        style={{ backgroundColor: '#C9607A', boxShadow: '0 4px 16px rgba(201,96,122,0.3)', cursor: 'pointer', border: 'none' }}
-      >
-        Continuar →
-      </button>
-    </div>
-  )
-}
-
-// ─── Step 4: Template Selection ───────────────────────────────────────────────
-
-function Step4Templates({
-  onSelect,
-}: {
-  onSelect: (templateId: string) => void
-}) {
-  const [filter, setFilter] = useState<CategoryFilter>('todos')
-
-  const filtered = filter === 'todos' ? TEMPLATES : TEMPLATES.filter(t => t.category === filter)
-
-  return (
-    <div className="flex flex-col gap-4">
-      <h2 className="text-2xl font-bold text-center" style={{ color: '#2C2125', fontFamily: 'Playfair Display, Georgia, serif' }}>
-        Escolha seu estilo
-      </h2>
-
-      {/* Category filters */}
-      <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-        {CATEGORY_FILTERS.map(f => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className="flex-shrink-0 h-8 px-3 rounded-full text-xs font-medium border transition-all duration-150"
-            style={{
-              backgroundColor: filter === f.value ? '#C9607A' : '#FFFFFF',
-              borderColor: filter === f.value ? '#C9607A' : '#EDE8E6',
-              color: filter === f.value ? '#FFFFFF' : '#8C7B82',
-              cursor: 'pointer',
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Templates grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {filtered.map(t => (
-          <button
-            key={t.slug}
-            onClick={() => onSelect(t.slug)}
-            className="flex flex-col rounded-2xl overflow-hidden text-left transition-all duration-150 active:scale-[0.97] hover:-translate-y-0.5"
-            style={{ boxShadow: '0 2px 8px rgba(44,33,37,0.10)', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
-          >
-            {/* Thumbnail */}
-            <div
-              className="relative h-28 flex items-center justify-center"
-              style={{
-                background: `linear-gradient(145deg, ${t.gradientFrom}, ${t.gradientTo})`,
-              }}
-            >
-              {t.thumbnail && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={t.thumbnail} alt={t.name} className="absolute inset-0 w-full h-full object-cover" />
-              )}
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.25) 100%)' }} />
-              <span
-                className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-0.5 rounded-full z-10"
-                style={{ backgroundColor: 'rgba(255,255,255,0.25)', color: '#FFFFFF', backdropFilter: 'blur(4px)' }}
-              >
-                {t.category}
+            <span className="text-4xl">{opt.emoji}</span>
+            <div>
+              <p className="font-serif text-base text-[#2C1810] mb-1">{opt.title}</p>
+              <p className="text-xs text-[#2C1810]/50 mb-3">{opt.desc}</p>
+              <span className="text-[10px] bg-[#C9607A]/10 text-[#C9607A] px-2.5 py-1 rounded-full">
+                {opt.badge}
               </span>
             </div>
-            {/* Info */}
-            <div className="flex flex-col p-2.5" style={{ backgroundColor: t.bgAccent }}>
-              <p className="font-bold text-sm leading-tight" style={{ color: t.textAccent, fontFamily: 'Playfair Display, Georgia, serif' }}>
-                {t.name}
-              </p>
-              <p className="text-[10px] mt-0.5 leading-snug" style={{ color: '#8C7B82' }}>
-                {t.description}
-              </p>
-            </div>
           </button>
         ))}
       </div>
-
-      {filtered.length === 0 && (
-        <div className="text-center py-8" style={{ color: '#8C7B82' }}>
-          <p className="text-3xl mb-2">🔍</p>
-          <p className="text-sm">Nenhum template encontrado</p>
-        </div>
-      )}
     </div>
   )
-}
 
-// ─── Main Onboarding Page ─────────────────────────────────────────────────────
+  // ─── Step 2: Occasion ───────────────────────────────────────────────────────
+  const Step2 = (
+    <div className="flex flex-col items-center gap-4 w-full max-w-lg mx-auto">
+      <h1 className="font-serif text-2xl text-[#2C1810] text-center">
+        Que momento você quer eternizar?
+      </h1>
+      <div className="grid grid-cols-3 gap-3 w-full mt-2">
+        {OCCASION_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => {
+              if (opt.value === 'other') {
+                advance({ occasion: 'other' })
+              } else {
+                advance({ occasion: opt.value })
+              }
+            }}
+            className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border-2 border-[#2C1810]/8 hover:border-[#C9607A]/40 hover:shadow-md transition-all"
+          >
+            <span className="text-3xl">{opt.emoji}</span>
+            <span className="text-xs text-[#2C1810]/70 font-medium">{opt.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 
-export default function CriarPage() {
-  const router = useRouter()
-  const [step, setStep] = useState(1)
-  const [state, setState] = useState<OnboardingState>({
-    pageCount: 16,
-    price: 14.90,
-  })
-  const [direction, setDirection] = useState<'forward' | 'back'>('forward')
+  // ─── Step 3: Style ──────────────────────────────────────────────────────────
+  const Step3 = (
+    <div className="flex flex-col items-center gap-4 w-full max-w-lg mx-auto">
+      <h1 className="font-serif text-2xl text-[#2C1810] text-center">
+        Qual estilo te representa?
+      </h1>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full mt-2">
+        {STYLE_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => advance({ style: opt.value })}
+            className="flex flex-col items-start gap-2 p-4 rounded-2xl border-2 border-transparent hover:border-[#C9607A]/40 hover:shadow-md transition-all text-left"
+            style={{ backgroundColor: opt.bg }}
+          >
+            <p className="font-serif text-sm text-[#2C1810] font-medium">{opt.label}</p>
+            <p className="text-[10px] text-[#2C1810]/50">{opt.adjectives}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 
-  const goNext = useCallback(() => {
-    setDirection('forward')
-    setStep(s => s + 1)
-  }, [])
+  // ─── Step 4: Color ──────────────────────────────────────────────────────────
+  const Step4 = (
+    <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto">
+      <h1 className="font-serif text-2xl text-[#2C1810] text-center">
+        Tem uma paleta de cor preferida?
+      </h1>
+      <div className="flex flex-wrap gap-3 justify-center mt-2">
+        {COLOR_PALETTE.map((hex) => (
+          <button
+            key={hex}
+            onClick={() => advance({ colorPalette: hex })}
+            className="w-11 h-11 rounded-full border-2 border-white shadow-md hover:scale-110 transition-transform hover:shadow-lg"
+            style={{ backgroundColor: hex }}
+            title={hex}
+          />
+        ))}
+        {/* Surprise */}
+        <button
+          onClick={() => advance({ colorPalette: 'surprise' })}
+          className="w-11 h-11 rounded-full border-2 border-white shadow-md hover:scale-110 transition-transform hover:shadow-lg flex items-center justify-center text-base"
+          style={{
+            background:
+              'conic-gradient(from 0deg, #C9607A, #C9A84C, #7B9EA6, #9B72CF, #A8C5B8, #C9607A)',
+          }}
+          title="Me surpreenda"
+        >
+          ✨
+        </button>
+      </div>
+      <p className="text-xs text-[#2C1810]/40 text-center">
+        Toque em uma cor ou deixe a AI decidir com ✨
+      </p>
+    </div>
+  )
 
-  const goBack = useCallback(() => {
-    setDirection('back')
-    setStep(s => Math.max(1, s - 1))
-  }, [])
+  // ─── Step 5a: Print pages ───────────────────────────────────────────────────
+  const Step5Print = (
+    <div className="flex flex-col items-center gap-4 w-full max-w-lg mx-auto">
+      <h1 className="font-serif text-2xl text-[#2C1810] text-center">
+        Quantas páginas no seu álbum?
+      </h1>
+      <div className="grid grid-cols-2 gap-4 w-full mt-2">
+        {PRINT_PAGE_OPTIONS.map((opt) => (
+          <button
+            key={opt.pages}
+            onClick={() => advance({ pageCount: opt.pages })}
+            className="flex flex-col items-center gap-1 p-5 bg-white rounded-2xl border-2 border-[#2C1810]/8 hover:border-[#C9607A]/40 hover:shadow-md transition-all"
+          >
+            <span className="font-serif text-3xl text-[#C9607A] font-medium">{opt.pages}</span>
+            <span className="text-xs text-[#2C1810]/50">páginas</span>
+            <span className="text-lg font-semibold text-[#2C1810] mt-1">
+              R${opt.price.toFixed(2).replace('.', ',')}
+            </span>
+            <span className="text-[10px] text-[#2C1810]/40 mt-0.5">{opt.hint}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 
-  const handlePurpose = useCallback((purpose: AlbumPurpose) => {
-    setState(s => ({ ...s, purpose }))
-    goNext()
-  }, [goNext])
+  // ─── Step 5b: Digital platform ──────────────────────────────────────────────
+  const Step5Digital = (
+    <div className="flex flex-col items-center gap-4 w-full max-w-lg mx-auto">
+      <h1 className="font-serif text-2xl text-[#2C1810] text-center">
+        Para qual plataforma?
+      </h1>
+      <div className="flex flex-col gap-3 w-full mt-2">
+        {DIGITAL_PLATFORM_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => advance({ platform: opt.value })}
+            className="flex items-center gap-4 p-4 bg-white rounded-2xl border-2 border-[#2C1810]/8 hover:border-[#C9607A]/40 hover:shadow-md transition-all text-left"
+          >
+            <span className="text-3xl flex-shrink-0">{opt.emoji}</span>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-[#2C1810]">{opt.label}</p>
+              <p className="text-xs text-[#2C1810]/50">{opt.hint}</p>
+            </div>
+            {opt.value === 'all' && (
+              <span className="text-[#C9607A] font-semibold text-sm flex-shrink-0">
+                R${DIGITAL_PRICE.toFixed(2).replace('.', ',')}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 
-  const handleFormat = useCallback((format: AlbumFormat) => {
-    setState(s => ({ ...s, format }))
-    goNext()
-  }, [goNext])
+  // ─── Step 6: Message ────────────────────────────────────────────────────────
+  const Step6 = (
+    <div className="flex flex-col items-center gap-4 w-full max-w-lg mx-auto">
+      <h1 className="font-serif text-2xl text-[#2C1810] text-center">
+        Tem uma mensagem especial para incluir?
+      </h1>
 
-  const handlePageCount = useCallback((pageCount: number) => {
-    setState(s => ({ ...s, pageCount, price: calcPrice(pageCount) }))
-  }, [])
+      {/* Reference notes (if came via gallery) */}
+      {state.referenceAlbumId && (
+        <div className="w-full bg-[#C9607A]/5 border border-[#C9607A]/20 rounded-2xl p-4">
+          <p className="text-sm font-medium text-[#2C1810] mb-3">
+            Você escolheu um álbum como referência. O que mais te agradou?
+          </p>
+          <div className="flex flex-col gap-3">
+            <div>
+              <label className="text-xs text-[#2C1810]/50 mb-1 block">O que quero igual:</label>
+              <textarea
+                value={referenceNotes}
+                onChange={(e) => setReferenceNotes(e.target.value)}
+                placeholder="Ex: As cores, o layout minimalista..."
+                className="w-full text-sm text-[#2C1810] bg-white border border-[#2C1810]/10 rounded-xl p-3 resize-none focus:outline-none focus:border-[#C9607A]/40"
+                rows={2}
+                maxLength={200}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
-  const handlePageCountContinue = useCallback(() => {
-    goNext()
-  }, [goNext])
+      <div className="w-full">
+        <textarea
+          value={specialMessage}
+          onChange={(e) => setSpecialMessage(e.target.value)}
+          placeholder="Ex: Para a minha mãe, com todo o amor do mundo 💕"
+          className="w-full text-sm text-[#2C1810] bg-white border-2 border-[#2C1810]/10 rounded-2xl p-4 resize-none focus:outline-none focus:border-[#C9607A]/40 transition-colors"
+          rows={4}
+          maxLength={200}
+        />
+        <div className="text-right text-xs text-[#2C1810]/30 mt-1">
+          {specialMessage.length}/200
+        </div>
+      </div>
 
-  const handleTemplateSelect = useCallback((templateId: string) => {
-    const finalState = { ...state, templateId }
-    // Save to sessionStorage
-    try {
-      sessionStorage.setItem('momentu_album_config', JSON.stringify(finalState))
-    } catch { /* ignore */ }
-    router.push(`/criar/${templateId}`)
-  }, [state, router])
+      <div className="flex flex-col sm:flex-row gap-3 w-full mt-2">
+        <button
+          onClick={() => finish()}
+          className="flex-1 py-3 rounded-full border border-[#2C1810]/10 text-sm text-[#2C1810]/50 hover:border-[#2C1810]/20 transition-colors"
+        >
+          Pular
+        </button>
+        <button
+          onClick={() => finish({ specialMessage })}
+          className="flex-1 bg-[#C9607A] text-white py-3 rounded-full text-sm font-medium hover:bg-[#b54d68] transition-all flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-[#C9607A]/20"
+        >
+          <SparkleIcon size={16} color="white" animate />
+          Criar minha amostra gratuita
+        </button>
+      </div>
+    </div>
+  )
 
-  // Determine which step 2 to show
-  const actualStep = step === 2 && state.purpose === 'digital' ? '2B' : step === 2 ? '2A' : String(step)
+  // ─── Render current step ────────────────────────────────────────────────────
+  function renderStep() {
+    switch (step) {
+      case 1:
+        return Step1
+      case 2:
+        return Step2
+      case 3:
+        return Step3
+      case 4:
+        return Step4
+      case 5:
+        return questionnaire.purpose === 'digital' ? Step5Digital : Step5Print
+      case 6:
+        return Step6
+      default:
+        return Step1
+    }
+  }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAF7F5', fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen bg-[#FAF7F5] flex flex-col">
+      {/* Progress bar */}
+      <div className="h-1 bg-[#2C1810]/5 fixed top-0 left-0 right-0 z-50">
+        <motion.div
+          className="h-full bg-[#C9607A]"
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+        />
+      </div>
+
       {/* Header */}
-      <header
-        className="sticky top-0 z-50 flex items-center px-4"
-        style={{
-          height: 56,
-          backgroundColor: 'rgba(250,247,245,0.95)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid #EDE8E6',
-        }}
-      >
-        {step > 1 ? (
+      <header className="sticky top-0 z-40 bg-[#FAF7F5]/90 backdrop-blur border-b border-[#C9607A]/10 pt-1">
+        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <button
             onClick={goBack}
-            className="text-sm font-medium"
-            style={{ color: '#8C7B82', background: 'none', border: 'none', cursor: 'pointer' }}
+            className={`flex items-center gap-1.5 text-sm text-[#2C1810]/50 hover:text-[#2C1810] transition-colors ${
+              step === 1 ? 'invisible' : ''
+            }`}
           >
             ← Voltar
           </button>
-        ) : (
-          <Link href="/" className="text-sm font-medium" style={{ color: '#8C7B82' }}>
-            ← Início
-          </Link>
-        )}
-        <div className="flex-1 text-center">
-          <span className="text-xl font-bold" style={{ color: '#C9607A', fontFamily: 'Playfair Display, Georgia, serif' }}>
-            momentu
-          </span>
+          <div className="flex items-center gap-2">
+            <SparkleIcon size={16} color="#C9607A" animate />
+            <span className="font-serif text-base text-[#2C1810] tracking-tight">momentu</span>
+          </div>
+          <div className="text-xs text-[#2C1810]/30">
+            {step}/{totalSteps}
+          </div>
         </div>
-        <div style={{ width: 60 }} />
       </header>
 
-      <main className="max-w-screen-sm mx-auto px-4 pt-6 pb-16">
-        <ProgressBar step={step} />
-
-        {/* Animated step content */}
-        <div
-          key={step}
-          style={{
-            animation: `slideIn${direction === 'forward' ? 'Right' : 'Left'} 0.25s ease-out`,
-          }}
-        >
-          {step === 1 && (
-            <Step1Purpose onSelect={handlePurpose} />
-          )}
-          {step === 2 && actualStep === '2A' && (
-            <Step2APrintSize onSelect={handleFormat} />
-          )}
-          {step === 2 && actualStep === '2B' && (
-            <Step2BDigitalFormat onSelect={handleFormat} />
-          )}
-          {step === 3 && (
-            <Step3PageCount
-              selected={state.pageCount ?? 16}
-              onSelect={handlePageCount}
-              onContinue={handlePageCountContinue}
-            />
-          )}
-          {step === 4 && (
-            <Step4Templates onSelect={handleTemplateSelect} />
-          )}
-        </div>
+      {/* Content */}
+      <main className="flex-1 flex items-start justify-center pt-12 pb-20 px-4">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={step}
+            variants={slideVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full max-w-lg"
+          >
+            {renderStep()}
+          </motion.div>
+        </AnimatePresence>
       </main>
-
-      <style jsx global>{`
-        @keyframes slideInRight {
-          from { opacity: 0; transform: translateX(24px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes slideInLeft {
-          from { opacity: 0; transform: translateX(-24px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-      `}</style>
     </div>
+  )
+}
+
+// ─── Export (wraps with Suspense for useSearchParams) ─────────────────────────
+
+export default function CriarPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#FAF7F5] flex items-center justify-center">
+          <SparkleIcon size={32} color="#C9607A" animate />
+        </div>
+      }
+    >
+      <CriarInner />
+    </Suspense>
   )
 }

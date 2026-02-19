@@ -115,3 +115,82 @@ export interface AlbumConfig {
   templateId: string
   pages: AlbumPage[]
 }
+
+// ─── Momentu AI Types ─────────────────────────────────────────────────────────
+
+export type AlbumStyle = 'romantic' | 'classic' | 'vibrant' | 'minimal' | 'vintage' | 'bohemian'
+export type AlbumOccasion = 'wedding' | 'birthday' | 'baby' | 'travel' | 'family' | 'graduation' | 'other'
+export type AlbumSessionStatus =
+  | 'questionnaire'
+  | 'sample_requested'
+  | 'sample_ready'
+  | 'paid'
+  | 'uploading'
+  | 'grouping'
+  | 'adjusting'
+  | 'generating'
+  | 'done'
+  | 'abandoned'
+
+export type DigitalPlatform = 'instagram_feed' | 'instagram_stories' | 'tiktok' | 'facebook' | 'all'
+
+export interface AlbumQuestionnaire {
+  purpose: AlbumPurpose
+  occasion?: AlbumOccasion
+  style?: AlbumStyle
+  colorPalette?: string       // hex color or 'surprise'
+  pageCount?: number          // print only
+  platform?: DigitalPlatform  // digital only
+  captionOnPhotos?: 'yes' | 'no' | 'first_only'  // digital only
+  specialMessage?: string
+  referenceAlbumId?: string
+  referenceNotes?: string
+}
+
+export interface PhotoAnnotation {
+  x: number    // 0-1 fraction of image width
+  y: number    // 0-1 fraction of image height
+  note: string // user's instruction
+}
+
+export interface AlbumSession {
+  id: string
+  userId: string
+  productType: AlbumPurpose
+  status: AlbumSessionStatus
+  questionnaire: AlbumQuestionnaire
+  photoCount: number
+  pageCount?: number
+  format?: AlbumFormat
+  price?: number
+  groupings: PhotoGrouping[]
+  adjustmentAnnotations: PhotoAnnotation[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PhotoGrouping {
+  pageIndex: number
+  photoIds: string[]  // photos in this page
+}
+
+export interface GalleryAlbum {
+  id: string
+  title: string
+  style: AlbumStyle
+  occasion: AlbumOccasion
+  productType: AlbumPurpose
+  thumbnailUrl: string
+  previewPages: string[]
+  isFeatured: boolean
+}
+
+// Pricing
+export const PRINT_PRICING: Record<number, number> = {
+  10: 39.90,
+  12: 44.90,
+  15: 49.90,
+  20: 59.90,
+}
+
+export const DIGITAL_PRICE = 29.90
