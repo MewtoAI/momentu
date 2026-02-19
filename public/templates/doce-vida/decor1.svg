@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Balloon 1 (coral) -->
+  <ellipse cx="70" cy="80" rx="25" ry="32" fill="#FF6B8A" opacity="0.7"/>
+  <path d="M70,112 Q70,130 65,140" stroke="#FF6B8A" stroke-width="1.5" fill="none"/>
+  <path d="M67,113 Q69,116 73,113" stroke="#FF6B8A" stroke-width="1.5" fill="none"/>
+  <!-- Balloon 2 (yellow) -->
+  <ellipse cx="130" cy="70" rx="22" ry="28" fill="#FFD166" opacity="0.8"/>
+  <path d="M130,98 Q130,115 125,128" stroke="#FFD166" stroke-width="1.5" fill="none"/>
+  <path d="M127,99 Q129,102 133,99" stroke="#FFD166" stroke-width="1.5" fill="none"/>
+  <!-- Balloon 3 (turquoise) -->
+  <ellipse cx="100" cy="55" rx="20" ry="26" fill="#4DD9C0" opacity="0.6"/>
+  <path d="M100,81 Q100,98 97,110" stroke="#4DD9C0" stroke-width="1.5" fill="none"/>
+  <!-- Confetti -->
+  <rect x="30" y="40" width="6" height="6" rx="1" fill="#FF6B8A" opacity="0.6" transform="rotate(20,33,43)"/>
+  <rect x="160" y="50" width="5" height="5" rx="1" fill="#FFD166" opacity="0.7" transform="rotate(-15,162,52)"/>
+  <rect x="45" y="150" width="6" height="4" rx="1" fill="#4DD9C0" opacity="0.6" transform="rotate(35,48,152)"/>
+  <rect x="155" y="130" width="5" height="5" rx="1" fill="#FF6B8A" opacity="0.5" transform="rotate(-25,157,132)"/>
+  <circle cx="40" cy="100" r="4" fill="#FFD166" opacity="0.5"/>
+  <circle cx="170" cy="110" r="3" fill="#4DD9C0" opacity="0.6"/>
+  <circle cx="160" cy="170" r="5" fill="#FF6B8A" opacity="0.4"/>
+  <!-- Cupcake bottom -->
+  <rect x="80" y="155" width="40" height="28" rx="3" fill="#FFD166" opacity="0.6"/>
+  <path d="M80,155 Q85,140 100,138 Q115,140 120,155 Z" fill="#FF6B8A" opacity="0.7"/>
+  <circle cx="100" cy="135" r="5" fill="#FF6B8A"/>
+  <!-- Star sprinkles on cupcake -->
+  <circle cx="90" cy="162" r="2" fill="#4DD9C0"/>
+  <circle cx="100" cy="168" r="2" fill="#FF6B8A"/>
+  <circle cx="110" cy="160" r="2" fill="#4DD9C0"/>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Wedding rings -->
+  <circle cx="80" cy="100" r="35" stroke="#C9A84C" stroke-width="6" fill="none"/>
+  <circle cx="120" cy="100" r="35" stroke="#C9A84C" stroke-width="6" fill="none"/>
+  <!-- Diamond on top ring -->
+  <polygon points="120,60 128,72 120,68 112,72" fill="#C9A84C" opacity="0.8"/>
+  <!-- Floral ornament left -->
+  <path d="M30,50 Q40,30 50,50 Q60,30 70,50" stroke="#C9A84C" stroke-width="2" fill="none" opacity="0.6"/>
+  <circle cx="50" cy="45" r="5" fill="#E8D5A3" opacity="0.8"/>
+  <!-- Floral ornament right -->
+  <path d="M130,50 Q140,30 150,50 Q160,30 170,50" stroke="#C9A84C" stroke-width="2" fill="none" opacity="0.6"/>
+  <circle cx="150" cy="45" r="5" fill="#E8D5A3" opacity="0.8"/>
+  <!-- Bottom flourish -->
+  <path d="M60,160 Q100,140 140,160" stroke="#C9A84C" stroke-width="1.5" fill="none" opacity="0.7"/>
+  <path d="M70,165 Q100,148 130,165" stroke="#C9A84C" stroke-width="1" fill="none" opacity="0.5"/>
+  <!-- Small hearts -->
+  <path d="M95,130 Q100,123 105,130 Q110,135 100,143 Q90,135 95,130 Z" fill="#C9A84C" opacity="0.6"/>
+</svg>

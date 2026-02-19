@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" fill="none">
+  <!-- Fluffy clouds -->
+  <ellipse cx="50" cy="60" rx="30" ry="18" fill="#E8DCFF" opacity="0.7"/>
+  <ellipse cx="70" cy="52" rx="22" ry="16" fill="#E8DCFF" opacity="0.7"/>
+  <ellipse cx="30" cy="55" rx="20" ry="14" fill="#E8DCFF" opacity="0.7"/>
+  <ellipse cx="150" cy="55" rx="30" ry="18" fill="#C3A8E0" opacity="0.5"/>
+  <ellipse cx="170" cy="48" rx="22" ry="14" fill="#C3A8E0" opacity="0.5"/>
+  <ellipse cx="130" cy="50" rx="20" ry="14" fill="#C3A8E0" opacity="0.5"/>
+  <!-- Tiny stars between clouds -->
+  <circle cx="100" cy="30" r="3" fill="#9B72CF" opacity="0.6"/>
+  <circle cx="110" cy="45" r="2" fill="#9B72CF" opacity="0.4"/>
+  <circle cx="90" cy="45" r="2" fill="#9B72CF" opacity="0.4"/>
+  <!-- Sparkle center -->
+  <line x1="100" y1="18" x2="100" y2="26" stroke="#9B72CF" stroke-width="2"/>
+  <line x1="96" y1="22" x2="104" y2="22" stroke="#9B72CF" stroke-width="2"/>
+</svg>

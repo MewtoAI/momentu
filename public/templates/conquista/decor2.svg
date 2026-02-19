@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" fill="none">
+  <!-- Laurel wreath divider -->
+  <path d="M0,40 L60,40" stroke="#1B2D5E" stroke-width="1" opacity="0.4"/>
+  <path d="M240,40 L300,40" stroke="#1B2D5E" stroke-width="1" opacity="0.4"/>
+  <!-- Left laurel leaves -->
+  <path d="M65,40 Q75,28 85,32 Q80,40 85,48 Q75,52 65,40 Z" fill="#1B2D5E" opacity="0.3"/>
+  <path d="M80,40 Q90,28 100,32 Q95,40 100,48 Q90,52 80,40 Z" fill="#1B2D5E" opacity="0.2"/>
+  <!-- Right laurel leaves (mirror) -->
+  <path d="M235,40 Q225,28 215,32 Q220,40 215,48 Q225,52 235,40 Z" fill="#1B2D5E" opacity="0.3"/>
+  <path d="M220,40 Q210,28 200,32 Q205,40 200,48 Q210,52 220,40 Z" fill="#1B2D5E" opacity="0.2"/>
+  <!-- Star center -->
+  <polygon points="150,22 154,34 166,34 156,42 160,54 150,46 140,54 144,42 134,34 146,34" fill="#C9A84C" opacity="0.7"/>
+</svg>

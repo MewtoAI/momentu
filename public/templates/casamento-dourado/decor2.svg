@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" fill="none">
+  <!-- Ornamental divider with floral motifs -->
+  <line x1="0" y1="40" x2="90" y2="40" stroke="#C9A84C" stroke-width="1" opacity="0.5"/>
+  <line x1="210" y1="40" x2="300" y2="40" stroke="#C9A84C" stroke-width="1" opacity="0.5"/>
+  <!-- Center diamond -->
+  <polygon points="150,20 165,40 150,60 135,40" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+  <polygon points="150,28 158,40 150,52 142,40" fill="#C9A84C" opacity="0.3"/>
+  <!-- Floral sprigs left -->
+  <circle cx="100" cy="40" r="4" fill="#E8D5A3" stroke="#C9A84C" stroke-width="1"/>
+  <circle cx="115" cy="30" r="3" fill="#E8D5A3" stroke="#C9A84C" stroke-width="1"/>
+  <circle cx="115" cy="50" r="3" fill="#E8D5A3" stroke="#C9A84C" stroke-width="1"/>
+  <line x1="100" y1="40" x2="115" y2="30" stroke="#C9A84C" stroke-width="1" opacity="0.5"/>
+  <line x1="100" y1="40" x2="115" y2="50" stroke="#C9A84C" stroke-width="1" opacity="0.5"/>
+  <!-- Floral sprigs right -->
+  <circle cx="200" cy="40" r="4" fill="#E8D5A3" stroke="#C9A84C" stroke-width="1"/>
+  <circle cx="185" cy="30" r="3" fill="#E8D5A3" stroke="#C9A84C" stroke-width="1"/>
+  <circle cx="185" cy="50" r="3" fill="#E8D5A3" stroke="#C9A84C" stroke-width="1"/>
+  <line x1="200" y1="40" x2="185" y2="30" stroke="#C9A84C" stroke-width="1" opacity="0.5"/>
+  <line x1="200" y1="40" x2="185" y2="50" stroke="#C9A84C" stroke-width="1" opacity="0.5"/>
+</svg>

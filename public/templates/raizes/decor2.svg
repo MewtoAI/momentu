@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 60" fill="none">
+  <!-- Vintage ribbon/banner divider -->
+  <path d="M0,30 L40,30 L50,20 L60,30 L240,30 L250,20 L260,30 L300,30" stroke="#8B5E3C" stroke-width="1.5" fill="none" opacity="0.6"/>
+  <!-- Leaf branch left -->
+  <path d="M70,30 Q80,20 90,25 Q80,30 90,35 Q80,35 70,30 Z" fill="#D4956A" opacity="0.5"/>
+  <path d="M85,30 Q95,18 105,23" stroke="#8B5E3C" stroke-width="1" fill="none" opacity="0.4"/>
+  <path d="M85,30 Q95,42 105,37" stroke="#8B5E3C" stroke-width="1" fill="none" opacity="0.4"/>
+  <!-- Leaf branch right -->
+  <path d="M230,30 Q220,20 210,25 Q220,30 210,35 Q220,35 230,30 Z" fill="#D4956A" opacity="0.5"/>
+  <path d="M215,30 Q205,18 195,23" stroke="#8B5E3C" stroke-width="1" fill="none" opacity="0.4"/>
+  <path d="M215,30 Q205,42 195,37" stroke="#8B5E3C" stroke-width="1" fill="none" opacity="0.4"/>
+  <!-- Center dot ornament -->
+  <circle cx="150" cy="30" r="5" fill="#8B5E3C" opacity="0.4"/>
+  <circle cx="150" cy="30" r="2" fill="#D4956A"/>
+</svg>

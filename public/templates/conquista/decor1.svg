@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Academic cap (mortarboard) -->
+  <polygon points="100,50 160,75 100,100 40,75" fill="#1B2D5E" opacity="0.7"/>
+  <rect x="92" y="50" width="16" height="40" fill="#1B2D5E" opacity="0.5"/>
+  <rect x="85" y="88" width="30" height="8" rx="2" fill="#C9A84C" opacity="0.8"/>
+  <!-- Tassel -->
+  <line x1="155" y1="75" x2="155" y2="110" stroke="#C9A84C" stroke-width="2"/>
+  <line x1="155" y1="110" x2="150" y2="130" stroke="#C9A84C" stroke-width="1.5"/>
+  <line x1="155" y1="110" x2="155" y2="130" stroke="#C9A84C" stroke-width="1.5"/>
+  <line x1="155" y1="110" x2="160" y2="130" stroke="#C9A84C" stroke-width="1.5"/>
+  <!-- Stars around cap -->
+  <polygon points="50,40 52,46 58,46 53,50 55,56 50,52 45,56 47,50 42,46 48,46" fill="#C9A84C" opacity="0.6"/>
+  <polygon points="150,35 152,39 156,39 153,42 154,46 150,44 146,46 147,42 144,39 148,39" fill="#C9A84C" opacity="0.5"/>
+  <!-- Diploma scroll -->
+  <rect x="55" y="140" width="90" height="45" rx="4" fill="#F0F3FA" stroke="#C9A84C" stroke-width="1.5"/>
+  <line x1="70" y1="155" x2="130" y2="155" stroke="#1B2D5E" stroke-width="1.5" opacity="0.5"/>
+  <line x1="75" y1="163" x2="125" y2="163" stroke="#1B2D5E" stroke-width="1" opacity="0.4"/>
+  <line x1="80" y1="170" x2="120" y2="170" stroke="#1B2D5E" stroke-width="1" opacity="0.3"/>
+  <!-- Seal on diploma -->
+  <circle cx="100" cy="162" r="8" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+  <circle cx="100" cy="162" r="4" fill="#C9A84C" opacity="0.4"/>
+</svg>
