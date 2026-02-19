@@ -3,200 +3,21 @@
 import { useState, useRef, useEffect, useCallback, useReducer } from 'react'
 import { Stage, Layer, Rect, Text, Image as KonvaImage, Group, Circle, Transformer } from 'react-konva'
 import { useRouter } from 'next/navigation'
-import type Konva from 'konva'
-import type {
+import {
+  AlbumPage,
   AlbumFormat,
   AlbumPurpose,
+  FORMAT_SPECS,
   PageType,
   PhotoSlot,
   TextSlot,
   PageLayout,
-  TemplateElement,
   TemplateConfig,
+  TemplateElement,
 } from '@/lib/types'
-import { FORMAT_SPECS } from '@/lib/types'
-import { validatePhotoQuality, getExportPixelRatio } from '@/lib/pdf-generator'
+import { validatePhotoQuality } from '@/lib/pdf-generator'
 
-// ─── Page layout presets (fraction-based) ────────────────────────────────────
-
-const PAGE_LAYOUTS: Record<PageType, PageLayout> = {
-  cover: {
-    photoSlots: [{ id: 'main', x: 0, y: 0, width: 1, height: 1 }],
-    textSlots: [
-      { id: 'title', x: 0.05, y: 0.68, width: 0.9, height: 0.13, defaultText: 'Seu Álbum', fontSize: 0.07, align: 'center', fontFamily: 'Playfair Display', color: '#FFFFFF' },
-      { id: 'subtitle', x: 0.05, y: 0.83, width: 0.9, height: 0.08, defaultText: '2026', fontSize: 0.04, align: 'center', fontFamily: 'Inter', color: 'rgba(255,255,255,0.85)' },
-    ],
-  },
-  photo_single: {
-    photoSlots: [{ id: 'main', x: 0.05, y: 0.05, width: 0.9, height: 0.78 }],
-    textSlots: [
-      { id: 'caption', x: 0.05, y: 0.85, width: 0.9, height: 0.1, defaultText: 'Caption aqui...', fontSize: 0.035, align: 'center', fontFamily: 'Inter', color: '#5C5670' },
-    ],
-  },
-  photo_double: {
-    photoSlots: [
-      { id: 'p1', x: 0.03, y: 0.07, width: 0.455, height: 0.62 },
-      { id: 'p2', x: 0.515, y: 0.07, width: 0.455, height: 0.62 },
-    ],
-    textSlots: [
-      { id: 'caption1', x: 0.03, y: 0.71, width: 0.455, height: 0.08, defaultText: 'Foto 1', fontSize: 0.033, align: 'center', fontFamily: 'Inter', color: '#5C5670' },
-      { id: 'caption2', x: 0.515, y: 0.71, width: 0.455, height: 0.08, defaultText: 'Foto 2', fontSize: 0.033, align: 'center', fontFamily: 'Inter', color: '#5C5670' },
-    ],
-  },
-  photo_triple: {
-    photoSlots: [
-      { id: 'p1', x: 0.03, y: 0.03, width: 0.94, height: 0.46 },
-      { id: 'p2', x: 0.03, y: 0.52, width: 0.455, height: 0.46 },
-      { id: 'p3', x: 0.515, y: 0.52, width: 0.455, height: 0.46 },
-    ],
-    textSlots: [],
-  },
-  photo_quad: {
-    photoSlots: [
-      { id: 'p1', x: 0.03, y: 0.03, width: 0.455, height: 0.455 },
-      { id: 'p2', x: 0.515, y: 0.03, width: 0.455, height: 0.455 },
-      { id: 'p3', x: 0.03, y: 0.515, width: 0.455, height: 0.455 },
-      { id: 'p4', x: 0.515, y: 0.515, width: 0.455, height: 0.455 },
-    ],
-    textSlots: [],
-  },
-  text_focus: {
-    photoSlots: [],
-    textSlots: [
-      { id: 'heading', x: 0.1, y: 0.3, width: 0.8, height: 0.2, defaultText: 'Um momento especial', fontSize: 0.065, align: 'center', fontFamily: 'Playfair Display', color: '#C9607A' },
-      { id: 'body', x: 0.1, y: 0.52, width: 0.8, height: 0.3, defaultText: 'Escreva sua mensagem aqui...', fontSize: 0.04, align: 'center', fontFamily: 'Inter', color: '#5C5670' },
-    ],
-  },
-  back_cover: {
-    photoSlots: [],
-    textSlots: [
-      { id: 'closing', x: 0.05, y: 0.36, width: 0.9, height: 0.12, defaultText: 'com amor,', fontSize: 0.06, align: 'center', fontFamily: 'Playfair Display', color: '#FFFFFF' },
-      { id: 'author', x: 0.05, y: 0.5, width: 0.9, height: 0.1, defaultText: 'Seu nome aqui', fontSize: 0.045, align: 'center', fontFamily: 'Inter', color: 'rgba(255,255,255,0.8)' },
-      { id: 'brand', x: 0.05, y: 0.88, width: 0.9, height: 0.08, defaultText: 'feito com ❤️ no momentu', fontSize: 0.033, align: 'center', fontFamily: 'Inter', color: 'rgba(255,255,255,0.45)' },
-    ],
-  },
-}
-
-// ─── Template Configs (new v2 format) ─────────────────────────────────────────
-
-const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
-  'amor-infinito': {
-    id: 'amor-infinito', name: 'Amor Infinito', category: ['casal'],
-    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
-    backgrounds: {}, thumbnail: '',
-    font: 'Playfair Display', bodyFont: 'Lato',
-    colors: { primary: '#C9184A', secondary: '#FF758F', text: '#2D0914', bg: '#FFF0F3' },
-    elements: { default: [] }, pages: PAGE_LAYOUTS,
-  },
-  'primeiro-sorriso': {
-    id: 'primeiro-sorriso', name: 'Primeiro Sorriso', category: ['bebe'],
-    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
-    backgrounds: {}, thumbnail: '',
-    font: 'Nunito', bodyFont: 'Nunito Sans',
-    colors: { primary: '#B5D8CC', secondary: '#F9C9D4', text: '#3A4A45', bg: '#FEF9EF' },
-    elements: { default: [] }, pages: PAGE_LAYOUTS,
-  },
-  'nossa-familia': {
-    id: 'nossa-familia', name: 'Nossa Família', category: ['familia'],
-    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
-    backgrounds: {}, thumbnail: '',
-    font: 'Merriweather', bodyFont: 'Source Sans 3',
-    colors: { primary: '#E07A5F', secondary: '#F2CC8F', text: '#3D405B', bg: '#F4F1DE' },
-    elements: { default: [] }, pages: PAGE_LAYOUTS,
-  },
-  'instante': {
-    id: 'instante', name: 'Instante', category: ['minimalista'],
-    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
-    backgrounds: {}, thumbnail: '',
-    font: 'Cormorant Garamond', bodyFont: 'Inter',
-    colors: { primary: '#1A1A2E', secondary: '#C9A84C', text: '#1A1A2E', bg: '#F5F5F8' },
-    elements: { default: [] }, pages: PAGE_LAYOUTS,
-  },
-  'mundo-afora': {
-    id: 'mundo-afora', name: 'Mundo Afora', category: ['viagem'],
-    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
-    backgrounds: {}, thumbnail: '',
-    font: 'Josefin Sans', bodyFont: 'Open Sans',
-    colors: { primary: '#2D6A4F', secondary: '#74C69D', text: '#1B4332', bg: '#D8F3DC' },
-    elements: { default: [] }, pages: PAGE_LAYOUTS,
-  },
-  'casamento-dourado': {
-    id: 'casamento-dourado', name: 'Casamento Dourado', category: ['casal'],
-    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
-    backgrounds: {}, thumbnail: '/templates/casamento-dourado/thumbnail.jpg',
-    font: 'Cormorant Garamond', bodyFont: 'Lato',
-    colors: { primary: '#C9A84C', secondary: '#E8D5A3', text: '#3D2B00', bg: '#FAF6EE' },
-    elements: { default: [] }, pages: PAGE_LAYOUTS,
-  },
-  'pequeno-universo': {
-    id: 'pequeno-universo', name: 'Pequeno Universo', category: ['bebe'],
-    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
-    backgrounds: {}, thumbnail: '/templates/pequeno-universo/thumbnail.jpg',
-    font: 'Nunito', bodyFont: 'Nunito Sans',
-    colors: { primary: '#9B72CF', secondary: '#C3A8E0', text: '#311B92', bg: '#F4F0FF' },
-    elements: { default: [] }, pages: PAGE_LAYOUTS,
-  },
-  'raizes': {
-    id: 'raizes', name: 'Raízes', category: ['familia'],
-    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
-    backgrounds: {}, thumbnail: '/templates/raizes/thumbnail.jpg',
-    font: 'Merriweather', bodyFont: 'Source Sans 3',
-    colors: { primary: '#8B5E3C', secondary: '#D4956A', text: '#3E2723', bg: '#F5EDD5' },
-    elements: { default: [] }, pages: PAGE_LAYOUTS,
-  },
-  'conquista': {
-    id: 'conquista', name: 'Conquista', category: ['formatura'],
-    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
-    backgrounds: {}, thumbnail: '/templates/conquista/thumbnail.jpg',
-    font: 'Playfair Display', bodyFont: 'Inter',
-    colors: { primary: '#1B2D5E', secondary: '#C9A84C', text: '#0D0D2B', bg: '#F0F3FA' },
-    elements: { default: [] }, pages: PAGE_LAYOUTS,
-  },
-  'doce-vida': {
-    id: 'doce-vida', name: 'Doce Vida', category: ['aniversario'],
-    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
-    backgrounds: {}, thumbnail: '/templates/doce-vida/thumbnail.jpg',
-    font: 'Nunito', bodyFont: 'Open Sans',
-    colors: { primary: '#FF6B8A', secondary: '#FFD166', text: '#BF360C', bg: '#F0FBFF' },
-    elements: { default: [] }, pages: PAGE_LAYOUTS,
-  },
-}
-
-// Background gradient colors for solid fallback (per template)
-const TEMPLATE_GRADIENTS: Record<string, [string, string]> = {
-  'amor-infinito':    ['#C9184A', '#FF758F'],
-  'primeiro-sorriso': ['#B5D8CC', '#F9C9D4'],
-  'nossa-familia':    ['#E07A5F', '#F2CC8F'],
-  'instante':         ['#1A1A2E', '#4A4A6E'],
-  'mundo-afora':      ['#2D6A4F', '#74C69D'],
-  'casamento-dourado':['#C9A84C', '#E8D5A3'],
-  'pequeno-universo': ['#9B72CF', '#C3A8E0'],
-  'raizes':           ['#8B5E3C', '#D4956A'],
-  'conquista':        ['#1B2D5E', '#C9A84C'],
-  'doce-vida':        ['#FF6B8A', '#FFD166'],
-}
-
-// ─── Page State ───────────────────────────────────────────────────────────────
-
-interface AlbumPageState {
-  id: string
-  type: PageType
-  photos: Record<string, string>      // slotId → data URL
-  texts: Record<string, string>       // slotId → text content
-  elements: TemplateElement[]         // interactive elements
-}
-
-// ─── Display dimensions ───────────────────────────────────────────────────────
-
-const DISPLAY_WIDTH = 340
-
-function getDisplayDimensions(format: AlbumFormat): { w: number; h: number } {
-  const spec = FORMAT_SPECS[format]
-  const ratio = spec.heightPx / spec.widthPx
-  return { w: DISPLAY_WIDTH, h: Math.round(DISPLAY_WIDTH * ratio) }
-}
-
-// ─── Font Loader ──────────────────────────────────────────────────────────────
+// ─── Font Loader Hook ─────────────────────────────────────────────────────────
 
 function useFontLoader(fonts: string[]): boolean {
   const [loaded, setLoaded] = useState(false)
@@ -212,248 +33,186 @@ function useFontLoader(fonts: string[]): boolean {
         document.head.appendChild(link)
       }
     })
-    Promise.all(fonts.map(f => document.fonts.load(`bold 20px "${f}"`))).then(() => setLoaded(true)).catch(() => setLoaded(true))
+    Promise.all(
+      fonts.map(f => document.fonts.load(`bold 20px "${f}"`))
+    ).then(() => setLoaded(true)).catch(() => setLoaded(true))
   }, [fonts]) // eslint-disable-line react-hooks/exhaustive-deps
   return loaded
 }
 
-// ─── Image Cache ──────────────────────────────────────────────────────────────
+// ─── Page Layout Factory ──────────────────────────────────────────────────────
 
-const imageCache: Record<string, HTMLImageElement | 'loading'> = {}
-
-function loadImageIntoCache(url: string, onLoad: () => void): void {
-  if (imageCache[url]) return
-  imageCache[url] = 'loading'
-  const img = new window.Image()
-  img.src = url
-  img.onload = () => {
-    imageCache[url] = img
-    onLoad()
+function buildPageLayouts(
+  font: string,
+  bodyFont: string,
+  primaryColor: string,
+  textColor: string
+): Partial<Record<PageType, PageLayout>> {
+  return {
+    cover: {
+      photoSlots: [{ id: 'cover-photo', x: 0, y: 0, width: 1, height: 1 }],
+      textSlots: [
+        { id: 'title', x: 0.033, y: 0.717, width: 0.933, height: 0.08, defaultText: 'Seu Álbum', fontSize: 0.073, align: 'center', fontFamily: font, color: '#FFFFFF' },
+        { id: 'subtitle', x: 0.033, y: 0.810, width: 0.933, height: 0.06, defaultText: '2026', fontSize: 0.04, align: 'center', fontFamily: bodyFont, color: 'rgba(255,255,255,0.85)' },
+      ],
+    },
+    photo_single: {
+      photoSlots: [{ id: 'photo-1', x: 0.067, y: 0.067, width: 0.867, height: 0.75 }],
+      textSlots: [
+        { id: 'caption', x: 0.067, y: 0.847, width: 0.867, height: 0.05, defaultText: 'Caption aqui...', fontSize: 0.037, align: 'center', fontFamily: bodyFont, color: textColor },
+      ],
+    },
+    photo_double: {
+      photoSlots: [
+        { id: 'photo-1', x: 0.027, y: 0.067, width: 0.46, height: 0.617 },
+        { id: 'photo-2', x: 0.513, y: 0.067, width: 0.46, height: 0.617 },
+      ],
+      textSlots: [
+        { id: 'caption1', x: 0.027, y: 0.7, width: 0.46, height: 0.05, defaultText: 'Foto 1', fontSize: 0.033, align: 'center', fontFamily: bodyFont, color: textColor },
+        { id: 'caption2', x: 0.513, y: 0.7, width: 0.46, height: 0.05, defaultText: 'Foto 2', fontSize: 0.033, align: 'center', fontFamily: bodyFont, color: textColor },
+      ],
+    },
+    photo_triple: {
+      photoSlots: [
+        { id: 'photo-1', x: 0.027, y: 0.04, width: 0.946, height: 0.43 },
+        { id: 'photo-2', x: 0.027, y: 0.49, width: 0.46, height: 0.43 },
+        { id: 'photo-3', x: 0.513, y: 0.49, width: 0.46, height: 0.43 },
+      ],
+      textSlots: [],
+    },
+    photo_quad: {
+      photoSlots: [
+        { id: 'photo-1', x: 0.027, y: 0.04, width: 0.46, height: 0.43 },
+        { id: 'photo-2', x: 0.513, y: 0.04, width: 0.46, height: 0.43 },
+        { id: 'photo-3', x: 0.027, y: 0.52, width: 0.46, height: 0.43 },
+        { id: 'photo-4', x: 0.513, y: 0.52, width: 0.46, height: 0.43 },
+      ],
+      textSlots: [],
+    },
+    text_focus: {
+      photoSlots: [],
+      textSlots: [
+        { id: 'heading', x: 0.067, y: 0.3, width: 0.867, height: 0.1, defaultText: 'Um momento especial', fontSize: 0.067, align: 'center', fontFamily: font, color: primaryColor },
+        { id: 'body', x: 0.1, y: 0.45, width: 0.8, height: 0.15, defaultText: 'Escreva sua mensagem aqui...', fontSize: 0.04, align: 'center', fontFamily: bodyFont, color: textColor },
+      ],
+    },
+    back_cover: {
+      photoSlots: [],
+      textSlots: [
+        { id: 'closing', x: 0.067, y: 0.383, width: 0.867, height: 0.08, defaultText: 'com amor,', fontSize: 0.06, align: 'center', fontFamily: font, color: '#FFFFFF' },
+        { id: 'author', x: 0.067, y: 0.5, width: 0.867, height: 0.06, defaultText: 'Seu nome aqui', fontSize: 0.047, align: 'center', fontFamily: bodyFont, color: 'rgba(255,255,255,0.80)' },
+        { id: 'brand', x: 0.067, y: 0.883, width: 0.867, height: 0.04, defaultText: 'feito com ❤️ no momentu', fontSize: 0.033, align: 'center', fontFamily: bodyFont, color: 'rgba(255,255,255,0.45)' },
+      ],
+    },
   }
-  img.onerror = () => { delete imageCache[url] }
 }
 
-// ─── BackgroundLayer component ────────────────────────────────────────────────
+// ─── Template Configs ─────────────────────────────────────────────────────────
 
-interface BackgroundLayerProps {
-  templateId: string
-  format: AlbumFormat
-  pageType: PageType
-  width: number
-  height: number
-  forceRender: () => void
+const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
+  'amor-infinito': {
+    id: 'amor-infinito', name: 'Amor Infinito', category: ['casal'],
+    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
+    backgrounds: { default: '/templates/amor-infinito/bg.svg' },
+    thumbnail: '',
+    font: 'Playfair Display', bodyFont: 'Lato',
+    colors: { primary: '#C9184A', secondary: '#FF758F', text: '#5C5670', bg: '#FFF0F3' },
+    elements: { default: [] },
+    pages: buildPageLayouts('Playfair Display', 'Lato', '#C9184A', '#5C5670'),
+  },
+  'primeiro-sorriso': {
+    id: 'primeiro-sorriso', name: 'Primeiro Sorriso', category: ['bebe'],
+    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
+    backgrounds: { default: '/templates/primeiro-sorriso/bg.svg' },
+    thumbnail: '',
+    font: 'Nunito', bodyFont: 'Nunito Sans',
+    colors: { primary: '#B5D8CC', secondary: '#F9C9D4', text: '#3A4A45', bg: '#FEF9EF' },
+    elements: { default: [] },
+    pages: buildPageLayouts('Nunito', 'Nunito Sans', '#B5D8CC', '#3A4A45'),
+  },
+  'nossa-familia': {
+    id: 'nossa-familia', name: 'Nossa Família', category: ['familia'],
+    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
+    backgrounds: { default: '/templates/nossa-familia/bg.svg' },
+    thumbnail: '',
+    font: 'Merriweather', bodyFont: 'Source Sans 3',
+    colors: { primary: '#E07A5F', secondary: '#F2CC8F', text: '#3D405B', bg: '#F4F1DE' },
+    elements: { default: [] },
+    pages: buildPageLayouts('Merriweather', 'Source Sans 3', '#E07A5F', '#3D405B'),
+  },
+  'instante': {
+    id: 'instante', name: 'Instante', category: ['minimalista'],
+    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
+    backgrounds: { default: '/templates/instante/bg.svg' },
+    thumbnail: '',
+    font: 'Cormorant Garamond', bodyFont: 'Inter',
+    colors: { primary: '#1A1A2E', secondary: '#C9A84C', text: '#1A1A2E', bg: '#F5F5F8' },
+    elements: { default: [] },
+    pages: buildPageLayouts('Cormorant Garamond', 'Inter', '#1A1A2E', '#1A1A2E'),
+  },
+  'mundo-afora': {
+    id: 'mundo-afora', name: 'Mundo Afora', category: ['viagem'],
+    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
+    backgrounds: { default: '/templates/mundo-afora/bg.svg' },
+    thumbnail: '',
+    font: 'Josefin Sans', bodyFont: 'Open Sans',
+    colors: { primary: '#2D6A4F', secondary: '#74C69D', text: '#1B4332', bg: '#D8F3DC' },
+    elements: { default: [] },
+    pages: buildPageLayouts('Josefin Sans', 'Open Sans', '#2D6A4F', '#1B4332'),
+  },
+  'casamento-dourado': {
+    id: 'casamento-dourado', name: 'Casamento Dourado', category: ['casal'],
+    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
+    backgrounds: { default: '/templates/casamento-dourado/bg.svg' },
+    thumbnail: '/templates/casamento-dourado/thumbnail.jpg',
+    font: 'Cormorant Garamond', bodyFont: 'Lato',
+    colors: { primary: '#C9A84C', secondary: '#E8D5A3', text: '#3D2B00', bg: '#FFFDF5' },
+    elements: { default: [] },
+    pages: buildPageLayouts('Cormorant Garamond', 'Lato', '#C9A84C', '#3D2B00'),
+  },
+  'pequeno-universo': {
+    id: 'pequeno-universo', name: 'Pequeno Universo', category: ['bebe'],
+    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
+    backgrounds: { default: '/templates/pequeno-universo/bg.svg' },
+    thumbnail: '/templates/pequeno-universo/thumbnail.jpg',
+    font: 'Nunito', bodyFont: 'Nunito Sans',
+    colors: { primary: '#9B72CF', secondary: '#C3A8E0', text: '#311B92', bg: '#F4F0FF' },
+    elements: { default: [] },
+    pages: buildPageLayouts('Nunito', 'Nunito Sans', '#9B72CF', '#311B92'),
+  },
+  'raizes': {
+    id: 'raizes', name: 'Raízes', category: ['familia'],
+    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
+    backgrounds: { default: '/templates/raizes/bg.svg' },
+    thumbnail: '/templates/raizes/thumbnail.jpg',
+    font: 'Merriweather', bodyFont: 'Source Sans 3',
+    colors: { primary: '#8B5E3C', secondary: '#D4956A', text: '#3E2723', bg: '#F5EDD5' },
+    elements: { default: [] },
+    pages: buildPageLayouts('Merriweather', 'Source Sans 3', '#8B5E3C', '#3E2723'),
+  },
+  'conquista': {
+    id: 'conquista', name: 'Conquista', category: ['formatura'],
+    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
+    backgrounds: { default: '/templates/conquista/bg.svg' },
+    thumbnail: '/templates/conquista/thumbnail.jpg',
+    font: 'Playfair Display', bodyFont: 'Inter',
+    colors: { primary: '#1B2D5E', secondary: '#C9A84C', text: '#0D0D2B', bg: '#F0F3FA' },
+    elements: { default: [] },
+    pages: buildPageLayouts('Playfair Display', 'Inter', '#1B2D5E', '#0D0D2B'),
+  },
+  'doce-vida': {
+    id: 'doce-vida', name: 'Doce Vida', category: ['aniversario'],
+    formats: ['print_20x20', 'print_a4', 'print_15x21', 'digital_square', 'digital_story'],
+    backgrounds: { default: '/templates/doce-vida/bg.svg' },
+    thumbnail: '/templates/doce-vida/thumbnail.jpg',
+    font: 'Nunito', bodyFont: 'Open Sans',
+    colors: { primary: '#FF6B8A', secondary: '#FFD166', text: '#BF360C', bg: '#F0FBFF' },
+    elements: { default: [] },
+    pages: buildPageLayouts('Nunito', 'Open Sans', '#FF6B8A', '#BF360C'),
+  },
 }
 
-function BackgroundLayer({ templateId, format, pageType, width, height, forceRender }: BackgroundLayerProps) {
-  const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null)
-  const config = TEMPLATE_CONFIGS[templateId] || TEMPLATE_CONFIGS['amor-infinito']
-  const gradients = TEMPLATE_GRADIENTS[templateId] || ['#C9607A', '#A8485F']
-
-  useEffect(() => {
-    setBgImage(null)
-    // Try format-specific SVG first
-    const formatSrc = `/templates/${templateId}/${format}/bg.svg`
-    const img = new window.Image()
-    img.src = formatSrc
-    img.onload = () => { setBgImage(img); forceRender() }
-    img.onerror = () => {
-      // Fallback: generic template bg
-      const fb = new window.Image()
-      fb.src = `/templates/${templateId}/bg.svg`
-      fb.onload = () => { setBgImage(fb); forceRender() }
-      // If both fail: stay null → solid color fallback rendered below
-    }
-  }, [templateId, format, forceRender])
-
-  if (bgImage) {
-    return <KonvaImage image={bgImage} x={0} y={0} width={width} height={height} />
-  }
-
-  // Solid/gradient fallback
-  const isCoverOrBack = pageType === 'cover' || pageType === 'back_cover'
-
-  if (isCoverOrBack) {
-    return (
-      <Rect
-        x={0} y={0} width={width} height={height}
-        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-        fillLinearGradientEndPoint={{ x: width, y: height }}
-        fillLinearGradientColorStops={[0, gradients[0], 1, gradients[1]]}
-      />
-    )
-  }
-
-  return <Rect x={0} y={0} width={width} height={height} fill={config.colors.bg} />
-}
-
-// ─── KonvaPhotoSlot component ─────────────────────────────────────────────────
-
-interface KonvaPhotoSlotProps {
-  slot: PhotoSlot
-  photo?: string
-  displayWidth: number
-  displayHeight: number
-  format: AlbumFormat
-  quality?: 'good' | 'warning' | 'poor'
-  templateColor: string
-  templateBg: string
-  onPhotoClick: () => void
-  forceRender: () => void
-}
-
-function KonvaPhotoSlot({ slot, photo, displayWidth, displayHeight, format: _format, quality, templateColor, templateBg, onPhotoClick, forceRender }: KonvaPhotoSlotProps) {
-  const x = slot.x * displayWidth
-  const y = slot.y * displayHeight
-  const w = slot.width * displayWidth
-  const h = slot.height * displayHeight
-
-  useEffect(() => {
-    if (photo && imageCache[photo] === undefined) {
-      loadImageIntoCache(photo, forceRender)
-    }
-  }, [photo, forceRender])
-
-  const cachedImg = photo ? imageCache[photo] : null
-  const imageEl = (cachedImg && cachedImg !== 'loading') ? cachedImg : null
-
-  // Quality indicator color
-  const qualityColor = quality === 'poor' ? '#FF4444' : quality === 'warning' ? '#FFB300' : null
-
-  return (
-    <Group>
-      {imageEl ? (
-        <KonvaImage
-          image={imageEl}
-          x={x} y={y} width={w} height={h}
-          onClick={onPhotoClick}
-          onTap={onPhotoClick}
-        />
-      ) : (
-        <Group onClick={onPhotoClick} onTap={onPhotoClick}>
-          <Rect x={x} y={y} width={w} height={h} fill={templateBg} cornerRadius={4} />
-          <Text
-            x={x} y={y + h / 2 - 20} width={w}
-            text="📷"
-            align="center" fontSize={24} fill={templateColor}
-          />
-          <Text
-            x={x} y={y + h / 2 + 8} width={w}
-            text="Toque para adicionar"
-            align="center" fontSize={10} fill={templateColor} opacity={0.7}
-          />
-        </Group>
-      )}
-
-      {/* Quality indicator badge (top-right) */}
-      {qualityColor && imageEl && (
-        <Group>
-          <Circle x={x + w - 10} y={y + 10} radius={8} fill={qualityColor} />
-          <Text x={x + w - 15} y={y + 4} text="!" fontSize={10} fill="white" fontStyle="bold" width={10} align="center" />
-        </Group>
-      )}
-
-      {/* Cover dark overlay */}
-    </Group>
-  )
-}
-
-// ─── DraggableElement component ───────────────────────────────────────────────
-
-interface DraggableElementProps {
-  element: TemplateElement
-  displayWidth: number
-  displayHeight: number
-  isSelected: boolean
-  onSelect: () => void
-  onChange: (props: Partial<TemplateElement>) => void
-  onDelete: () => void
-  forceRender: () => void
-}
-
-function DraggableElement({ element, displayWidth, displayHeight, isSelected, onSelect, onChange, onDelete, forceRender }: DraggableElementProps) {
-  const [image, setImage] = useState<HTMLImageElement | null>(null)
-  const shapeRef = useRef<Konva.Image>(null)
-
-  useEffect(() => {
-    const img = new window.Image()
-    img.src = element.src
-    img.onload = () => { setImage(img); forceRender() }
-  }, [element.src, forceRender])
-
-  const x = element.x * displayWidth
-  const y = element.y * displayHeight
-  const w = element.width * displayWidth
-  const h = element.height * displayHeight
-
-  return (
-    <Group>
-      <KonvaImage
-        ref={shapeRef}
-        image={image ?? undefined}
-        x={x} y={y} width={w} height={h}
-        draggable={!element.locked}
-        onClick={onSelect}
-        onTap={onSelect}
-        onDragEnd={e => onChange({
-          x: e.target.x() / displayWidth,
-          y: e.target.y() / displayHeight,
-        })}
-        onTransformEnd={() => {
-          const node = shapeRef.current
-          if (!node) return
-          onChange({
-            x: node.x() / displayWidth,
-            y: node.y() / displayHeight,
-            width: (node.width() * node.scaleX()) / displayWidth,
-            height: (node.height() * node.scaleY()) / displayHeight,
-          })
-          node.scaleX(1)
-          node.scaleY(1)
-        }}
-      />
-      {isSelected && !element.locked && (
-        <Group x={x + w - 12} y={y - 12} onClick={onDelete} onTap={onDelete}>
-          <Circle radius={12} fill="#FF4444" />
-          <Text text="×" x={-7} y={-9} fontSize={18} fill="white" fontStyle="bold" />
-        </Group>
-      )}
-    </Group>
-  )
-}
-
-// ─── KonvaTextSlot component ──────────────────────────────────────────────────
-
-interface KonvaTextSlotProps {
-  slot: TextSlot
-  text: string
-  displayWidth: number
-  displayHeight: number
-  config: TemplateConfig
-  onEdit: () => void
-}
-
-function KonvaTextSlot({ slot, text, displayWidth, displayHeight, config, onEdit }: KonvaTextSlotProps) {
-  const x = slot.x * displayWidth
-  const y = slot.y * displayHeight
-  const w = slot.width * displayWidth
-  const fontSize = Math.max(8, Math.round(slot.fontSize * displayHeight))
-  const fontFamily = slot.fontFamily || config.font
-
-  return (
-    <Text
-      x={x} y={y} width={w}
-      text={text || slot.defaultText}
-      fontSize={fontSize}
-      fill={slot.color}
-      fontFamily={fontFamily}
-      align={slot.align}
-      onClick={onEdit}
-      onTap={onEdit}
-    />
-  )
-}
-
-// ─── Page Type Label ──────────────────────────────────────────────────────────
+// ─── Page Type Labels / Helpers ───────────────────────────────────────────────
 
 const PAGE_TYPE_LABELS: Record<PageType, string> = {
   cover: 'Capa',
@@ -465,49 +224,409 @@ const PAGE_TYPE_LABELS: Record<PageType, string> = {
   back_cover: 'Contracapa',
 }
 
-// ─── Page Type Options for switcher ──────────────────────────────────────────
+const CHANGEABLE_PAGE_TYPES: PageType[] = ['photo_single', 'photo_double', 'photo_triple', 'photo_quad', 'text_focus']
 
-const PAGE_TYPE_OPTIONS: PageType[] = ['photo_single', 'photo_double', 'photo_triple', 'photo_quad', 'text_focus']
+// ─── Init Pages ───────────────────────────────────────────────────────────────
 
-// ─── Initial pages factory ────────────────────────────────────────────────────
+function initPages(
+  pageCount: number,
+  templateId: string,
+  format: AlbumFormat,
+  templateElements: Record<string, TemplateElement[]>
+): AlbumPage[] {
+  const config = TEMPLATE_CONFIGS[templateId]
+  const elements: TemplateElement[] =
+    templateElements[format] ||
+    templateElements['default'] ||
+    config?.elements?.[format] ||
+    config?.elements?.['default'] ||
+    []
 
-function createInitialPages(templateId: string, pageCount: number): AlbumPageState[] {
-  const pages: AlbumPageState[] = []
-  const config = TEMPLATE_CONFIGS[templateId] || TEMPLATE_CONFIGS['amor-infinito']
-  const elements = config.elements?.default ?? []
+  const pageTypes: PageType[] = ['cover']
+  for (let i = 1; i < pageCount - 1; i++) {
+    if (i % 4 === 0) pageTypes.push('text_focus')
+    else if (i % 2 === 0) pageTypes.push('photo_double')
+    else pageTypes.push('photo_single')
+  }
+  pageTypes.push('back_cover')
 
-  // Cover
-  pages.push({ id: `page-cover`, type: 'cover', photos: {}, texts: {}, elements })
+  return pageTypes.map((type, i) => ({
+    id: `page-${i}`,
+    type,
+    photos: {},
+    texts: {},
+    elements: elements.map(el => ({ ...el, id: `${el.id}-p${i}` })),
+  }))
+}
 
-  // Content pages
-  const contentCount = Math.max(1, pageCount - 2)
-  const contentTypes: PageType[] = ['photo_single', 'photo_double', 'text_focus', 'photo_double', 'photo_single', 'text_focus', 'photo_double']
-  for (let i = 0; i < contentCount; i++) {
-    pages.push({
-      id: `page-${i + 1}`,
-      type: contentTypes[i % contentTypes.length],
-      photos: {}, texts: {}, elements: [],
+// ─── Background Layer ─────────────────────────────────────────────────────────
+
+interface BackgroundLayerProps {
+  templateId: string
+  format: AlbumFormat
+  colors: TemplateConfig['colors']
+  width: number
+  height: number
+}
+
+function BackgroundLayer({ templateId, format, colors, width, height }: BackgroundLayerProps) {
+  const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null)
+
+  useEffect(() => {
+    setBgImage(null)
+    const tryLoad = (src: string) =>
+      new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new window.Image()
+        img.onload = () => resolve(img)
+        img.onerror = reject
+        img.src = src
+      })
+
+    tryLoad(`/templates/${templateId}/${format}/bg.svg`)
+      .catch(() => tryLoad(`/templates/${templateId}/bg.svg`))
+      .then(img => setBgImage(img))
+      .catch(() => setBgImage(null))
+  }, [templateId, format])
+
+  if (bgImage) {
+    return <KonvaImage image={bgImage} x={0} y={0} width={width} height={height} listening={false} />
+  }
+
+  return <Rect x={0} y={0} width={width} height={height} fill={colors.bg || '#FAF7F5'} listening={false} />
+}
+
+// ─── Konva Photo Slot ─────────────────────────────────────────────────────────
+
+interface KonvaPhotoSlotProps {
+  slot: PhotoSlot
+  photo: string | undefined
+  quality: 'good' | 'warning' | 'poor' | undefined
+  displayWidth: number
+  displayHeight: number
+  templateColor: string
+  templateBg: string
+  purpose: AlbumPurpose
+  onPhotoClick: () => void
+}
+
+function KonvaPhotoSlot({
+  slot, photo, quality, displayWidth, displayHeight,
+  templateColor, templateBg, purpose, onPhotoClick,
+}: KonvaPhotoSlotProps) {
+  const [photoImage, setPhotoImage] = useState<HTMLImageElement | null>(null)
+
+  const x = slot.x * displayWidth
+  const y = slot.y * displayHeight
+  const w = slot.width * displayWidth
+  const h = slot.height * displayHeight
+
+  useEffect(() => {
+    if (!photo) { setPhotoImage(null); return }
+    const img = new window.Image()
+    img.onload = () => setPhotoImage(img)
+    img.src = photo
+  }, [photo])
+
+  const qualityColor =
+    quality === 'good' ? '#22C55E' :
+    quality === 'warning' ? '#F59E0B' :
+    quality === 'poor' ? '#EF4444' : null
+
+  return (
+    <Group onClick={onPhotoClick} onTap={onPhotoClick}>
+      {photoImage ? (
+        <KonvaImage
+          image={photoImage}
+          x={x} y={y} width={w} height={h}
+          clipX={x} clipY={y} clipWidth={w} clipHeight={h}
+        />
+      ) : (
+        <Group>
+          <Rect
+            x={x} y={y} width={w} height={h}
+            fill={templateBg}
+            stroke={templateColor}
+            strokeWidth={1}
+            opacity={0.5}
+            dash={[5, 3]}
+          />
+          <Text
+            text="📷"
+            x={x + w / 2 - 12}
+            y={y + h / 2 - 20}
+            fontSize={Math.min(24, w * 0.15)}
+          />
+          <Text
+            text="Toque para adicionar foto"
+            x={x + 4}
+            y={y + h / 2 + 8}
+            width={w - 8}
+            fontSize={Math.max(9, Math.min(12, w * 0.07))}
+            fill={templateColor}
+            align="center"
+            opacity={0.7}
+          />
+        </Group>
+      )}
+      {purpose === 'print' && qualityColor && (
+        <Circle x={x + w - 8} y={y + 8} radius={6} fill={qualityColor} />
+      )}
+    </Group>
+  )
+}
+
+// ─── Draggable Element ────────────────────────────────────────────────────────
+
+interface DraggableElementProps {
+  element: TemplateElement
+  displayWidth: number
+  displayHeight: number
+  isSelected: boolean
+  shapeRef?: React.RefObject<any>
+  onSelect: () => void
+  onChange: (updates: Partial<TemplateElement>) => void
+  onDelete: () => void
+}
+
+function DraggableElement({
+  element, displayWidth, displayHeight,
+  isSelected, shapeRef, onSelect, onChange, onDelete,
+}: DraggableElementProps) {
+  const [image, setImage] = useState<HTMLImageElement | null>(null)
+  const internalRef = useRef<any>(null)
+  const ref = shapeRef || internalRef
+
+  useEffect(() => {
+    if (!element.src) return
+    const img = new window.Image()
+    img.onload = () => setImage(img)
+    img.src = element.src
+  }, [element.src])
+
+  const x = element.x * displayWidth
+  const y = element.y * displayHeight
+  const w = element.width * displayWidth
+  const h = element.height * displayHeight
+
+  const handleDragEnd = (e: any) => {
+    onChange({
+      x: e.target.x() / displayWidth,
+      y: e.target.y() / displayHeight,
     })
   }
 
-  // Back cover
-  pages.push({ id: `page-back`, type: 'back_cover', photos: {}, texts: {}, elements })
+  const handleTransformEnd = () => {
+    const node = ref.current
+    if (!node) return
+    const scaleX = node.scaleX()
+    const scaleY = node.scaleY()
+    node.scaleX(1)
+    node.scaleY(1)
+    onChange({
+      x: node.x() / displayWidth,
+      y: node.y() / displayHeight,
+      width: (node.width() * scaleX) / displayWidth,
+      height: (node.height() * scaleY) / displayHeight,
+    })
+  }
 
-  return pages
+  const sharedProps = {
+    ref,
+    x, y, width: w, height: h,
+    draggable: !element.locked,
+    onClick: onSelect,
+    onTap: onSelect,
+    onDragEnd: handleDragEnd,
+    onTransformEnd: handleTransformEnd,
+    opacity: isSelected ? 0.9 : 1,
+  }
+
+  return (
+    <Group>
+      {image ? (
+        <KonvaImage {...sharedProps} image={image} />
+      ) : (
+        <Rect
+          {...sharedProps}
+          fill="rgba(201,96,122,0.15)"
+          stroke="rgba(201,96,122,0.4)"
+          strokeWidth={1}
+        />
+      )}
+      {isSelected && !element.locked && (
+        <Group x={x + w - 14} y={y - 14} onClick={onDelete} onTap={onDelete}>
+          <Circle radius={12} fill="#FF4444" />
+          <Text text="✕" x={-6} y={-8} fontSize={14} fill="white" fontStyle="bold" />
+        </Group>
+      )}
+    </Group>
+  )
 }
 
-// ─── File to DataURL helper ───────────────────────────────────────────────────
+// ─── Page Canvas ──────────────────────────────────────────────────────────────
 
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = e => resolve(e.target?.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
+interface PageCanvasProps {
+  page: AlbumPage
+  config: TemplateConfig
+  format: AlbumFormat
+  purpose: AlbumPurpose
+  displayWidth: number
+  displayHeight: number
+  selectedElementId: string | null
+  photoQualities: Record<string, 'good' | 'warning' | 'poor'>
+  onSelectElement: (id: string | null) => void
+  onPhotoClick: (slotId: string) => void
+  onTextClick: (slotId: string, currentText: string) => void
+  onElementChange: (elementId: string, updates: Partial<TemplateElement>) => void
+  onElementDelete: (elementId: string) => void
 }
 
-// ─── Main Editor Component ────────────────────────────────────────────────────
+function PageCanvas({
+  page, config, format, purpose, displayWidth, displayHeight,
+  selectedElementId, photoQualities,
+  onSelectElement, onPhotoClick, onTextClick, onElementChange, onElementDelete,
+}: PageCanvasProps) {
+  const transformerRef = useRef<any>(null)
+  const selectedRef = useRef<any>(null)
+
+  useEffect(() => {
+    if (transformerRef.current) {
+      if (selectedRef.current && selectedElementId) {
+        transformerRef.current.nodes([selectedRef.current])
+      } else {
+        transformerRef.current.nodes([])
+      }
+      transformerRef.current.getLayer()?.batchDraw()
+    }
+  }, [selectedElementId])
+
+  const layout = config.pages[page.type]
+
+  return (
+    <Stage
+      width={displayWidth}
+      height={displayHeight}
+      onMouseDown={e => { if (e.target === e.target.getStage()) onSelectElement(null) }}
+      onTouchStart={e => { if (e.target === e.target.getStage()) onSelectElement(null) }}
+    >
+      {/* Layer 0: Background SVG — não interativo */}
+      <Layer listening={false}>
+        <BackgroundLayer
+          templateId={config.id}
+          format={format}
+          colors={config.colors}
+          width={displayWidth}
+          height={displayHeight}
+        />
+      </Layer>
+
+      {/* Layer 1: Photo slots */}
+      <Layer>
+        {(layout?.photoSlots || []).map(slot => (
+          <KonvaPhotoSlot
+            key={slot.id}
+            slot={slot}
+            photo={page.photos[slot.id]}
+            quality={photoQualities[`${page.id}-${slot.id}`]}
+            displayWidth={displayWidth}
+            displayHeight={displayHeight}
+            templateColor={config.colors.primary}
+            templateBg={config.colors.bg}
+            purpose={purpose}
+            onPhotoClick={() => onPhotoClick(slot.id)}
+          />
+        ))}
+      </Layer>
+
+      {/* Layer 2: Template elements (draggable/resizable) */}
+      <Layer>
+        {page.elements.map(el => (
+          <DraggableElement
+            key={el.id}
+            element={el}
+            displayWidth={displayWidth}
+            displayHeight={displayHeight}
+            isSelected={selectedElementId === el.id}
+            shapeRef={selectedElementId === el.id ? selectedRef : undefined}
+            onSelect={() => onSelectElement(el.id)}
+            onChange={updates => onElementChange(el.id, updates)}
+            onDelete={() => { onSelectElement(null); onElementDelete(el.id) }}
+          />
+        ))}
+      </Layer>
+
+      {/* Layer 3: Text slots */}
+      <Layer>
+        {(layout?.textSlots || []).map(slot => {
+          const text = page.texts[slot.id] !== undefined ? page.texts[slot.id] : slot.defaultText
+          const x = slot.x * displayWidth
+          const y = slot.y * displayHeight
+          const w = slot.width * displayWidth
+          const fontSize = Math.max(8, slot.fontSize * displayHeight)
+          return (
+            <Text
+              key={slot.id}
+              x={x} y={y} width={w}
+              text={text}
+              fontSize={fontSize}
+              fontFamily={slot.fontFamily || config.font}
+              fill={slot.color || config.colors.text}
+              align={slot.align}
+              onClick={() => onTextClick(slot.id, text)}
+              onTap={() => onTextClick(slot.id, text)}
+              listening={true}
+            />
+          )
+        })}
+      </Layer>
+
+      {/* Layer 4: Transformer */}
+      <Layer>
+        <Transformer
+          ref={transformerRef}
+          boundBoxFunc={(oldBox, newBox) => {
+            if (newBox.width < 20 || newBox.height < 20) return oldBox
+            return newBox
+          }}
+          rotateEnabled={false}
+          borderStroke="#C9607A"
+          anchorStroke="#C9607A"
+          anchorFill="white"
+          anchorSize={10}
+        />
+      </Layer>
+    </Stage>
+  )
+}
+
+// ─── Quality Indicator ────────────────────────────────────────────────────────
+
+function QualityBanner({ qualities }: { qualities: Record<string, 'good' | 'warning' | 'poor'> }) {
+  const values = Object.values(qualities)
+  if (values.length === 0) return null
+  const hasPoor = values.includes('poor')
+  const hasWarning = values.includes('warning')
+  if (!hasPoor && !hasWarning) return null
+
+  return (
+    <div
+      className="flex items-center gap-2 px-4 py-2 mx-4 mt-2 rounded-xl text-xs font-medium"
+      style={{
+        backgroundColor: hasPoor ? '#FEE2E2' : '#FEF3C7',
+        color: hasPoor ? '#991B1B' : '#92400E',
+      }}
+    >
+      <span>{hasPoor ? '⚠️' : '💛'}</span>
+      <span>
+        {hasPoor
+          ? 'Algumas fotos podem ficar desfocadas na impressão'
+          : 'Qualidade de algumas fotos pode ser melhorada'}
+      </span>
+    </div>
+  )
+}
+
+// ─── Main Editor ──────────────────────────────────────────────────────────────
 
 interface KonvaEditorProps {
   templateId: string
@@ -515,11 +634,10 @@ interface KonvaEditorProps {
 
 export default function KonvaEditor({ templateId }: KonvaEditorProps) {
   const router = useRouter()
-  const config = TEMPLATE_CONFIGS[templateId] || TEMPLATE_CONFIGS['amor-infinito']
 
-  // Read onboarding config from sessionStorage
-  const [format, setFormat] = useState<AlbumFormat>('print_20x20')
-  const [purpose, setPurpose] = useState<AlbumPurpose>('print')
+  // ── Config from sessionStorage ──
+  const [albumPurpose, setAlbumPurpose] = useState<AlbumPurpose>('print')
+  const [albumFormat, setAlbumFormat] = useState<AlbumFormat>('print_20x20')
   const [pageCount, setPageCount] = useState(16)
 
   useEffect(() => {
@@ -527,90 +645,101 @@ export default function KonvaEditor({ templateId }: KonvaEditorProps) {
       const saved = sessionStorage.getItem('momentu_album_config')
       if (saved) {
         const cfg = JSON.parse(saved)
-        if (cfg.format) setFormat(cfg.format)
-        if (cfg.purpose) setPurpose(cfg.purpose)
-        if (cfg.pageCount) setPageCount(cfg.pageCount)
+        setAlbumPurpose(cfg.purpose || 'print')
+        setAlbumFormat(cfg.format || 'print_20x20')
+        setPageCount(cfg.pageCount || 16)
       }
     } catch { /* ignore */ }
   }, [])
 
-  const dims = getDisplayDimensions(format)
-  const displayWidth = dims.w
-  const displayHeight = dims.h
-
+  // ── Template config ──
+  const config = TEMPLATE_CONFIGS[templateId] || TEMPLATE_CONFIGS['amor-infinito']
   const fontsLoaded = useFontLoader([config.font, config.bodyFont])
 
+  // ── Template elements (from elements.json) ──
+  const [templateElements, setTemplateElements] = useState<Record<string, TemplateElement[]>>({})
+  useEffect(() => {
+    if (!templateId) return
+    fetch(`/templates/${templateId}/elements.json`)
+      .then(r => r.json())
+      .then(data => setTemplateElements(data))
+      .catch(() => {})
+  }, [templateId])
+
+  // ── Canvas display size ──
+  const spec = FORMAT_SPECS[albumFormat]
+  const aspectRatio = spec.widthPx / spec.heightPx
+  const [displayWidth, setDisplayWidth] = useState(300)
+  const [displayHeight, setDisplayHeight] = useState(300)
+
+  useEffect(() => {
+    const updateSize = () => {
+      const maxW = Math.min(window.innerWidth - 32, 500)
+      setDisplayWidth(maxW)
+      setDisplayHeight(Math.round(maxW / aspectRatio))
+    }
+    updateSize()
+    window.addEventListener('resize', updateSize)
+    return () => window.removeEventListener('resize', updateSize)
+  }, [aspectRatio])
+
+  // ── Album state ──
   const [albumTitle, setAlbumTitle] = useState('Meu Álbum')
-  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [pages, setPages] = useState<AlbumPage[]>([])
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
-  const [pages, setPages] = useState<AlbumPageState[]>([])
-  const [photoQualities, setPhotoQualities] = useState<Record<string, 'good' | 'warning' | 'poor'>>({})
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null)
-  const [activeTextSlotId, setActiveTextSlotId] = useState<string | null>(null)
+  const [photoQualities, setPhotoQualities] = useState<Record<string, 'good' | 'warning' | 'poor'>>({})
+  const [editingTextSlotId, setEditingTextSlotId] = useState<string | null>(null)
+  const [editingTextValue, setEditingTextValue] = useState('')
   const [showPageTypeMenu, setShowPageTypeMenu] = useState(false)
-  const [isExporting, setIsExporting] = useState(false)
-  const [showQualityToast, setShowQualityToast] = useState(false)
   const [, forceRender] = useReducer(x => x + 1, 0)
 
+  // active photo slot being replaced
+  const activePhotoSlotRef = useRef<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const activeSlotIdRef = useRef<string>('main')
-  const stageRef = useRef<Konva.Stage>(null)
-  const transformerRef = useRef<Konva.Transformer>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Initialize pages
+  // ── Initialize pages when format/templateElements are ready ──
   useEffect(() => {
-    const tryRestore = () => {
-      try {
-        const saved = localStorage.getItem(`editor-v2-${templateId}`)
-        if (saved) {
-          const parsed = JSON.parse(saved)
-          if (parsed.pages) return parsed.pages as AlbumPageState[]
-        }
-      } catch { /* ignore */ }
-      return null
-    }
+    // Try to restore from localStorage
+    try {
+      const saved = localStorage.getItem(`editor-v2-${templateId}`)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        setPages(parsed.pages || [])
+        setAlbumTitle(parsed.albumTitle || 'Meu Álbum')
+        return
+      }
+    } catch { /* ignore */ }
 
-    const restored = tryRestore()
-    setPages(restored ?? createInitialPages(templateId, pageCount))
-  }, [templateId, pageCount])
+    setPages(initPages(pageCount, templateId, albumFormat, templateElements))
+  }, [pageCount, templateId, albumFormat, templateElements]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-save
+  // ── Auto-save ──
   useEffect(() => {
-    if (!pages.length) return
+    if (pages.length === 0) return
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      try { localStorage.setItem(`editor-v2-${templateId}`, JSON.stringify({ pages, albumTitle })) } catch { /* ignore */ }
+      try {
+        localStorage.setItem(`editor-v2-${templateId}`, JSON.stringify({ pages, albumTitle }))
+      } catch { /* ignore */ }
     }, 1000)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [pages, albumTitle, templateId])
 
-  // Attach transformer to selected element
-  useEffect(() => {
-    if (!transformerRef.current || !stageRef.current) return
-    if (!selectedElementId) {
-      transformerRef.current.nodes([])
-      return
-    }
-    const stage = stageRef.current
-    const shape = stage.findOne(`#el-${selectedElementId}`)
-    if (shape) {
-      transformerRef.current.nodes([shape])
-    } else {
-      transformerRef.current.nodes([])
-    }
-  }, [selectedElementId, currentPageIndex])
+  // ── Handlers ──
 
-  const currentPage = pages[currentPageIndex]
-  const currentLayout = currentPage ? (config.pages[currentPage.type] ?? PAGE_LAYOUTS[currentPage.type] ?? PAGE_LAYOUTS.photo_single) : PAGE_LAYOUTS.photo_single
+  const updatePage = useCallback((idx: number, updater: (p: AlbumPage) => AlbumPage) => {
+    setPages(prev => {
+      const updated = [...prev]
+      updated[idx] = updater(updated[idx])
+      return updated
+    })
+  }, [])
 
-  // ── Photo upload handler ──────────────────────────────────────────────────
-
-  const handlePhotoSlotClick = useCallback((slotId: string) => {
-    activeSlotIdRef.current = slotId
+  const handlePhotoClick = useCallback((slotId: string) => {
+    activePhotoSlotRef.current = slotId
     fileInputRef.current?.click()
-    setSelectedElementId(null)
-    setActiveTextSlotId(null)
   }, [])
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -618,493 +747,420 @@ export default function KonvaEditor({ templateId }: KonvaEditorProps) {
     if (!file) return
     e.target.value = ''
 
-    const dataUrl = await fileToDataUrl(file)
-    const slotId = activeSlotIdRef.current
+    const reader = new FileReader()
+    const dataUrl = await new Promise<string>(resolve => {
+      reader.onload = ev => resolve(ev.target!.result as string)
+      reader.readAsDataURL(file)
+    })
 
-    // Check image quality for print
     const img = new window.Image()
-    img.src = dataUrl
-    await new Promise<void>(resolve => { img.onload = () => resolve() })
+    await new Promise<void>(resolve => { img.onload = () => resolve(); img.src = dataUrl })
 
-    const slot = currentLayout.photoSlots.find(s => s.id === slotId)
-    if (slot && purpose === 'print') {
-      const quality = validatePhotoQuality(img.width, img.height, slot.width, slot.height, format)
-      setPhotoQualities(prev => ({ ...prev, [`${currentPageIndex}-${slotId}`]: quality }))
-      if (quality === 'poor') {
-        setShowQualityToast(true)
-        setTimeout(() => setShowQualityToast(false), 4000)
+    // Photo quality validation (print only)
+    if (albumPurpose === 'print') {
+      const slotId = activePhotoSlotRef.current
+      const layout = config.pages[pages[currentPageIndex]?.type]
+      const slot = layout?.photoSlots.find(s => s.id === slotId)
+      if (slot) {
+        const q = validatePhotoQuality(img.naturalWidth, img.naturalHeight, slot.width, slot.height, albumFormat)
+        setPhotoQualities(prev => ({ ...prev, [`${pages[currentPageIndex].id}-${slotId}`]: q }))
       }
     }
 
-    // Cache and update
-    loadImageIntoCache(dataUrl, forceRender)
-    setPages(prev => {
-      const next = [...prev]
-      const pg = { ...next[currentPageIndex] }
-      pg.photos = { ...pg.photos, [slotId]: dataUrl }
-      next[currentPageIndex] = pg
-      return next
-    })
-  }, [currentLayout.photoSlots, purpose, format, currentPageIndex, forceRender])
+    updatePage(currentPageIndex, page => ({
+      ...page,
+      photos: { ...page.photos, [activePhotoSlotRef.current]: dataUrl },
+    }))
+    forceRender()
+  }, [albumPurpose, albumFormat, config, pages, currentPageIndex, updatePage, forceRender])
 
-  // ── Text editing ──────────────────────────────────────────────────────────
-
-  const openTextEditor = useCallback((slotId: string) => {
-    setActiveTextSlotId(slotId)
+  const handleTextClick = useCallback((slotId: string, currentText: string) => {
+    setEditingTextSlotId(slotId)
+    setEditingTextValue(currentText)
     setSelectedElementId(null)
   }, [])
 
-  const handleTextChange = useCallback((slotId: string, val: string) => {
-    setPages(prev => {
-      const next = [...prev]
-      const pg = { ...next[currentPageIndex] }
-      pg.texts = { ...pg.texts, [slotId]: val }
-      next[currentPageIndex] = pg
-      return next
-    })
-  }, [currentPageIndex])
+  const handleTextSave = useCallback(() => {
+    if (!editingTextSlotId) return
+    updatePage(currentPageIndex, page => ({
+      ...page,
+      texts: { ...page.texts, [editingTextSlotId]: editingTextValue },
+    }))
+    setEditingTextSlotId(null)
+  }, [editingTextSlotId, editingTextValue, currentPageIndex, updatePage])
 
-  // ── Element management ────────────────────────────────────────────────────
+  const handleElementChange = useCallback((elementId: string, updates: Partial<TemplateElement>) => {
+    updatePage(currentPageIndex, page => ({
+      ...page,
+      elements: page.elements.map(el => el.id === elementId ? { ...el, ...updates } : el),
+    }))
+  }, [currentPageIndex, updatePage])
 
-  const updateElement = useCallback((elementId: string, props: Partial<TemplateElement>) => {
-    setPages(prev => {
-      const next = [...prev]
-      const pg = { ...next[currentPageIndex] }
-      pg.elements = pg.elements.map(el => el.id === elementId ? { ...el, ...props } : el)
-      next[currentPageIndex] = pg
-      return next
-    })
-  }, [currentPageIndex])
+  const handleElementDelete = useCallback((elementId: string) => {
+    updatePage(currentPageIndex, page => ({
+      ...page,
+      elements: page.elements.filter(el => el.id !== elementId),
+    }))
+  }, [currentPageIndex, updatePage])
 
-  const deleteElement = useCallback((elementId: string) => {
-    setPages(prev => {
-      const next = [...prev]
-      const pg = { ...next[currentPageIndex] }
-      pg.elements = pg.elements.filter(el => el.id !== elementId)
-      next[currentPageIndex] = pg
-      return next
-    })
-    setSelectedElementId(null)
-  }, [currentPageIndex])
-
-  // ── Page management ───────────────────────────────────────────────────────
-
-  const addPage = useCallback(() => {
-    const newPage: AlbumPageState = {
+  const handleAddPage = useCallback(() => {
+    const newPage: AlbumPage = {
       id: `page-${Date.now()}`,
       type: 'photo_single',
-      photos: {}, texts: {}, elements: [],
+      photos: {},
+      texts: {},
+      elements: [],
     }
     setPages(prev => {
-      const next = [...prev]
-      // Insert before back_cover if exists
-      const backIdx = next.findIndex(p => p.type === 'back_cover')
-      if (backIdx >= 0) {
-        next.splice(backIdx, 0, newPage)
-      } else {
-        next.push(newPage)
-      }
-      return next
+      const updated = [...prev]
+      updated.splice(currentPageIndex + 1, 0, newPage)
+      return updated
     })
-    // Navigate to the new page (back_cover is typically last, new page is before it)
-    setCurrentPageIndex(prev => prev + 1)
-  }, [])
-
-  const changePageType = useCallback((type: PageType) => {
-    setPages(prev => {
-      const next = [...prev]
-      next[currentPageIndex] = { ...next[currentPageIndex], type }
-      return next
-    })
-    setShowPageTypeMenu(false)
-    setActiveTextSlotId(null)
-    setSelectedElementId(null)
+    setCurrentPageIndex(i => i + 1)
   }, [currentPageIndex])
 
-  // ── High-res export ───────────────────────────────────────────────────────
+  const handleChangePageType = useCallback((type: PageType) => {
+    updatePage(currentPageIndex, page => ({ ...page, type, photos: {}, texts: {} }))
+    setShowPageTypeMenu(false)
+  }, [currentPageIndex, updatePage])
 
-  const exportAllPages = useCallback(async (): Promise<string[]> => {
-    if (!stageRef.current) return []
-    const spec = FORMAT_SPECS[format]
-    const pixelRatio = getExportPixelRatio(displayWidth, format)
-    const pageImages: string[] = []
-
-    const originalIdx = currentPageIndex
-
-    for (let i = 0; i < pages.length; i++) {
-      setCurrentPageIndex(i)
-      await new Promise(resolve => setTimeout(resolve, 150))
-      const dataUrl = stageRef.current?.toDataURL({ pixelRatio, mimeType: 'image/png' })
-      if (dataUrl) pageImages.push(dataUrl)
+  const handleFinalize = useCallback(() => {
+    const albumId = `album-${Date.now()}`
+    const allPhotos: string[] = []
+    pages.forEach(p => {
+      Object.values(p.photos).forEach(ph => { if (ph) allPhotos.push(ph) })
+    })
+    const albumData = {
+      albumId, templateId,
+      albumTitle, albumFormat, albumPurpose,
+      pageCount: pages.length,
+      photos: allPhotos,
+      pages,
+      templateColor: config.colors.primary,
+      createdAt: new Date().toISOString(),
     }
+    localStorage.setItem(`album-${albumId}`, JSON.stringify(albumData))
+    localStorage.setItem('currentAlbumId', albumId)
+    router.push(`/preview/${albumId}`)
+  }, [pages, templateId, albumTitle, albumFormat, albumPurpose, config, router])
 
-    setCurrentPageIndex(originalIdx)
-    return pageImages
-  }, [format, displayWidth, currentPageIndex, pages.length])
-
-  const handleFinalize = useCallback(async () => {
-    setIsExporting(true)
-    try {
-      const pageImages = await exportAllPages()
-      const albumId = `album-${Date.now()}`
-      const albumData = {
-        albumId, templateId, format, purpose,
-        albumTitle, pageCount: pages.length,
-        pageImages,
-        createdAt: new Date().toISOString(),
-      }
-      localStorage.setItem(`album-${albumId}`, JSON.stringify(albumData))
-      localStorage.setItem('currentAlbumId', albumId)
-      router.push(`/preview/${albumId}`)
-    } finally {
-      setIsExporting(false)
-    }
-  }, [exportAllPages, albumTitle, templateId, format, purpose, pages.length, router])
-
-  // ── Deselect on stage click ───────────────────────────────────────────────
-
-  const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (e.target === e.target.getStage()) {
-      setSelectedElementId(null)
-    }
-  }, [])
-
-  if (!pages.length || !currentPage) {
-    return (
-      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAF7F5' }}>
-        <p style={{ color: '#8C7B82', fontSize: 14 }}>Carregando editor...</p>
-      </div>
-    )
-  }
-
-  const activeTextSlot = currentLayout.textSlots.find(s => s.id === activeTextSlotId) ?? null
+  const currentPage = pages[currentPageIndex]
+  const canGoBack = currentPageIndex > 0
+  const canGoNext = currentPageIndex < pages.length - 1
+  const isLocked = currentPage?.type === 'cover' || currentPage?.type === 'back_cover'
 
   return (
     <div
-      style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', backgroundColor: '#FAF7F5', fontFamily: 'Inter, sans-serif' }}
-      onClick={() => { if (showPageTypeMenu) setShowPageTypeMenu(false) }}
+      className="flex flex-col"
+      style={{ minHeight: '100dvh', backgroundColor: '#FAF7F5', fontFamily: 'Inter, sans-serif' }}
     >
       {/* Hidden file input */}
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
 
-      {/* ── HEADER ─────────────────────────────────────────────────────── */}
+      {/* ── HEADER ── */}
       <header
-        className="flex-shrink-0 flex items-center px-4 gap-2"
+        className="sticky top-0 z-50 flex items-center px-4 gap-3"
         style={{
-          height: 56, zIndex: 50,
-          backgroundColor: 'rgba(250,247,245,0.97)',
+          height: 56,
+          backgroundColor: 'rgba(250,247,245,0.95)',
           backdropFilter: 'blur(12px)',
           borderBottom: '1px solid #EDE8E6',
         }}
       >
         <button
-          onClick={() => router.push('/templates')}
-          style={{ color: '#8C7B82', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500, flexShrink: 0 }}
+          onClick={() => router.push('/criar')}
+          className="flex-shrink-0 text-sm font-medium"
+          style={{ color: '#8C7B82', background: 'none', border: 'none', cursor: 'pointer' }}
         >
-          ←
+          ← Voltar
         </button>
-
-        {isEditingTitle ? (
-          <input
-            autoFocus
-            value={albumTitle}
-            onChange={e => setAlbumTitle(e.target.value)}
-            onBlur={() => setIsEditingTitle(false)}
-            onKeyDown={e => e.key === 'Enter' && setIsEditingTitle(false)}
-            style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: 600, color: '#2C2125', background: 'none', border: 'none', outline: 'none' }}
-          />
-        ) : (
-          <button
-            onClick={() => setIsEditingTitle(true)}
-            style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: 600, color: '#2C2125', background: 'none', border: 'none', cursor: 'pointer' }}
-          >
-            {albumTitle} ✏️
-          </button>
-        )}
-
+        <input
+          value={albumTitle}
+          onChange={e => setAlbumTitle(e.target.value)}
+          className="flex-1 text-sm font-semibold text-center bg-transparent outline-none"
+          style={{ color: '#2C2125', minWidth: 0 }}
+          placeholder="Nome do álbum"
+        />
         <button
           onClick={handleFinalize}
-          disabled={isExporting}
+          className="flex-shrink-0 text-sm font-semibold text-white px-4 h-9 rounded-full"
           style={{
-            flexShrink: 0, height: 36, padding: '0 14px',
-            borderRadius: 99, backgroundColor: '#C9607A',
-            color: '#FFFFFF', fontSize: 13, fontWeight: 700,
-            border: 'none', cursor: isExporting ? 'not-allowed' : 'pointer',
-            opacity: isExporting ? 0.6 : 1,
+            backgroundColor: '#C9607A',
+            boxShadow: '0 2px 8px rgba(201,96,122,0.25)',
+            border: 'none',
+            cursor: 'pointer',
           }}
         >
-          {isExporting ? '⏳' : '↓ Baixar'}
+          Finalizar →
         </button>
       </header>
 
-      {/* ── CANVAS AREA ─────────────────────────────────────────────────── */}
+      {/* ── CANVAS AREA ── */}
       <div
-        className="flex-1 flex items-center justify-center"
-        style={{ backgroundColor: '#DDDBE5', padding: '16px 0', minHeight: 0, overflow: 'hidden' }}
+        className="flex-1 flex flex-col items-center py-4"
+        style={{ backgroundColor: '#E8E5EE', overflowY: 'auto' }}
+        onClick={() => { setSelectedElementId(null); setShowPageTypeMenu(false) }}
       >
-        <div style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.18)', lineHeight: 0, borderRadius: 2, overflow: 'hidden' }}>
-          {!fontsLoaded ? (
-            <div style={{ width: displayWidth, height: displayHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: config.colors.bg }}>
-              <p style={{ fontSize: 12, color: '#8C7B82' }}>Carregando...</p>
-            </div>
-          ) : (
-            <Stage
-              ref={stageRef}
-              width={displayWidth}
-              height={displayHeight}
-              onClick={handleStageClick}
+        {/* Canvas */}
+        <div
+          style={{
+            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+            borderRadius: 4,
+            overflow: 'hidden',
+            lineHeight: 0,
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          {pages.length === 0 || !fontsLoaded ? (
+            <div
+              style={{
+                width: displayWidth,
+                height: displayHeight,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: config.colors.bg,
+              }}
             >
-              {/* Layer 0: Background — não interativo */}
-              <Layer listening={false}>
-                <BackgroundLayer
-                  templateId={templateId}
-                  format={format}
-                  pageType={currentPage.type}
-                  width={displayWidth}
-                  height={displayHeight}
-                  forceRender={forceRender}
-                />
-                {/* Cover overlay */}
-                {currentPage.type === 'cover' && (
-                  <Rect
-                    x={0} y={displayHeight * 0.55} width={displayWidth} height={displayHeight * 0.45}
-                    fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-                    fillLinearGradientEndPoint={{ x: 0, y: displayHeight * 0.45 }}
-                    fillLinearGradientColorStops={[0, 'rgba(0,0,0,0)', 1, 'rgba(0,0,0,0.55)']}
-                  />
-                )}
-              </Layer>
+              <span style={{ color: '#8C7B82', fontSize: 13 }}>Carregando…</span>
+            </div>
+          ) : currentPage ? (
+            <PageCanvas
+              page={currentPage}
+              config={config}
+              format={albumFormat}
+              purpose={albumPurpose}
+              displayWidth={displayWidth}
+              displayHeight={displayHeight}
+              selectedElementId={selectedElementId}
+              photoQualities={photoQualities}
+              onSelectElement={setSelectedElementId}
+              onPhotoClick={handlePhotoClick}
+              onTextClick={handleTextClick}
+              onElementChange={handleElementChange}
+              onElementDelete={handleElementDelete}
+            />
+          ) : null}
+        </div>
 
-              {/* Layer 1: Photo slots */}
-              <Layer>
-                {currentLayout.photoSlots.map(slot => (
-                  <KonvaPhotoSlot
-                    key={slot.id}
-                    slot={slot}
-                    photo={currentPage.photos[slot.id]}
-                    displayWidth={displayWidth}
-                    displayHeight={displayHeight}
-                    format={format}
-                    quality={photoQualities[`${currentPageIndex}-${slot.id}`]}
-                    templateColor={config.colors.primary}
-                    templateBg={config.colors.bg}
-                    onPhotoClick={() => handlePhotoSlotClick(slot.id)}
-                    forceRender={forceRender}
-                  />
-                ))}
-              </Layer>
+        {/* Quality banner */}
+        {albumPurpose === 'print' && (
+          <div className="w-full" style={{ maxWidth: displayWidth + 32 }}>
+            <QualityBanner qualities={photoQualities} />
+          </div>
+        )}
 
-              {/* Layer 2: Template elements (draggable) */}
-              <Layer>
-                {currentPage.elements.map(el => (
-                  <DraggableElement
-                    key={el.id}
-                    element={el}
-                    displayWidth={displayWidth}
-                    displayHeight={displayHeight}
-                    isSelected={selectedElementId === el.id}
-                    onSelect={() => setSelectedElementId(el.id)}
-                    onChange={props => updateElement(el.id, props)}
-                    onDelete={() => deleteElement(el.id)}
-                    forceRender={forceRender}
-                  />
-                ))}
-              </Layer>
-
-              {/* Layer 3: Text slots */}
-              <Layer>
-                {currentLayout.textSlots.map(slot => (
-                  <KonvaTextSlot
-                    key={slot.id}
-                    slot={slot}
-                    text={currentPage.texts[slot.id] ?? slot.defaultText}
-                    displayWidth={displayWidth}
-                    displayHeight={displayHeight}
-                    config={config}
-                    onEdit={() => openTextEditor(slot.id)}
-                  />
-                ))}
-              </Layer>
-
-              {/* Layer 4: Transformer */}
-              <Layer>
-                <Transformer ref={transformerRef} />
-              </Layer>
-            </Stage>
-          )}
+        {/* Format badge */}
+        <div
+          className="mt-2 px-3 py-1 rounded-full text-xs font-medium"
+          style={{ backgroundColor: 'rgba(201,96,122,0.12)', color: '#C9607A' }}
+        >
+          {albumFormat.replace('_', ' ').toUpperCase()} · {albumPurpose === 'print' ? '300 DPI' : '1080px'}
         </div>
       </div>
 
-      {/* ── TEXT EDIT PANEL (appears when text slot is tapped) ───────────── */}
-      {activeTextSlot && (
+      {/* ── TEXT EDIT MODAL ── */}
+      {editingTextSlotId && (
         <div
-          style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-            backgroundColor: '#FFFFFF', borderTop: `2px solid ${config.colors.primary}`,
-            padding: '12px 16px 24px',
-          }}
+          className="fixed inset-0 z-50 flex items-end"
+          style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+          onClick={handleTextSave}
         >
-          <div className="flex items-center justify-between mb-2">
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#2C2125' }}>
-              Editando: <span style={{ color: config.colors.primary }}>{activeTextSlot.id}</span>
+          <div
+            className="w-full p-4 rounded-t-2xl"
+            style={{ backgroundColor: '#FFFFFF' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="text-xs font-semibold mb-2" style={{ color: '#8C7B82' }}>
+              Editando texto
             </p>
-            <button onClick={() => setActiveTextSlotId(null)} style={{ color: '#8C7B82', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}>×</button>
+            <textarea
+              autoFocus
+              value={editingTextValue}
+              onChange={e => setEditingTextValue(e.target.value)}
+              rows={3}
+              className="w-full text-sm px-3 py-2 rounded-xl resize-none"
+              style={{
+                border: `1.5px solid ${config.colors.primary}`,
+                outline: 'none',
+                color: '#2C2125',
+                backgroundColor: '#FAFAFA',
+                fontFamily: config.bodyFont,
+              }}
+              placeholder="Digite o texto..."
+            />
+            <div className="flex gap-3 mt-3">
+              <button
+                onClick={() => setEditingTextSlotId(null)}
+                className="flex-1 py-3 rounded-full text-sm font-semibold"
+                style={{ border: `1.5px solid #EDE8E6`, color: '#8C7B82', background: 'white', cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleTextSave}
+                className="flex-1 py-3 rounded-full text-sm font-semibold text-white"
+                style={{ backgroundColor: config.colors.primary, border: 'none', cursor: 'pointer' }}
+              >
+                Salvar
+              </button>
+            </div>
           </div>
-          <input
-            autoFocus
-            value={currentPage.texts[activeTextSlot.id] ?? activeTextSlot.defaultText}
-            onChange={e => handleTextChange(activeTextSlot.id, e.target.value)}
-            style={{
-              width: '100%', padding: '10px 14px', borderRadius: 12,
-              border: `1.5px solid ${config.colors.primary}`, outline: 'none',
-              fontSize: 15, color: '#2C2125', fontFamily: activeTextSlot.fontFamily,
-              boxSizing: 'border-box',
-            }}
-          />
         </div>
       )}
 
-      {/* ── QUALITY TOAST ─────────────────────────────────────────────── */}
-      {showQualityToast && (
+      {/* ── PAGE TYPE MENU ── */}
+      {showPageTypeMenu && (
         <div
-          style={{
-            position: 'fixed', top: 64, left: '50%', transform: 'translateX(-50%)', zIndex: 200,
-            backgroundColor: '#FF4444', color: '#FFFFFF', borderRadius: 12,
-            padding: '10px 18px', fontSize: 13, fontWeight: 600, maxWidth: 300, textAlign: 'center',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-          }}
+          className="fixed inset-0 z-50 flex items-end"
+          style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+          onClick={() => setShowPageTypeMenu(false)}
         >
-          ⚠️ Foto pequena — pode ficar borrada na impressão
+          <div
+            className="w-full p-4 rounded-t-2xl"
+            style={{ backgroundColor: '#FFFFFF' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="text-xs font-semibold mb-3" style={{ color: '#8C7B82' }}>
+              Tipo de página
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {CHANGEABLE_PAGE_TYPES.map(type => (
+                <button
+                  key={type}
+                  onClick={() => handleChangePageType(type)}
+                  className="py-3 rounded-xl text-sm font-medium"
+                  style={{
+                    backgroundColor: currentPage?.type === type ? config.colors.primary : '#F5F5F5',
+                    color: currentPage?.type === type ? '#FFFFFF' : '#2C2125',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {PAGE_TYPE_LABELS[type]}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
-      {/* ── BOTTOM BAR ─────────────────────────────────────────────────── */}
+      {/* ── FOOTER NAVIGATION ── */}
       <div
         className="flex-shrink-0"
-        style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid #EDE8E6', paddingBottom: 'env(safe-area-inset-bottom)' }}
+        style={{
+          borderTop: '1px solid #EDE8E6',
+          backgroundColor: '#FFFFFF',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
       >
-        {/* Page indicator */}
-        <div
-          className="flex items-center justify-between px-4"
-          style={{ height: 40, borderBottom: '1px solid #EDE8E6' }}
-        >
-          <p style={{ fontSize: 12, color: '#8C7B82', fontWeight: 500 }}>
-            Página {currentPageIndex + 1}/{pages.length}
-          </p>
-          <div className="flex gap-1.5 items-center">
-            {pages.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => { setCurrentPageIndex(i); setActiveTextSlotId(null); setSelectedElementId(null) }}
-                style={{
-                  width: currentPageIndex === i ? 18 : 6, height: 6,
-                  borderRadius: 99, border: 'none', padding: 0,
-                  backgroundColor: currentPageIndex === i ? config.colors.primary : '#D4CCCB',
-                  cursor: 'pointer', transition: 'all 0.2s',
-                }}
-              />
-            ))}
-          </div>
-          <p style={{ fontSize: 11, color: '#8C7B82' }}>{PAGE_TYPE_LABELS[currentPage.type]}</p>
-        </div>
-
-        {/* Navigation + actions */}
-        <div className="flex items-center gap-2 px-4 py-3">
-          {/* Prev */}
+        {/* Page navigation row */}
+        <div className="flex items-center px-4 py-3 gap-2">
           <button
-            onClick={() => { setCurrentPageIndex(i => Math.max(0, i - 1)); setActiveTextSlotId(null); setSelectedElementId(null) }}
-            disabled={currentPageIndex === 0}
+            onClick={() => { setCurrentPageIndex(i => Math.max(0, i - 1)); setSelectedElementId(null) }}
+            disabled={!canGoBack}
             style={{
               width: 36, height: 36, borderRadius: '50%',
-              border: '1.5px solid #EDE8E6', backgroundColor: '#FFFFFF',
-              fontSize: 16, cursor: currentPageIndex === 0 ? 'not-allowed' : 'pointer',
-              opacity: currentPageIndex === 0 ? 0.4 : 1, flexShrink: 0,
-            }}
-          >←</button>
-
-          {/* Page type switcher */}
-          <div style={{ position: 'relative', flex: 1 }}>
-            <button
-              onClick={e => { e.stopPropagation(); setShowPageTypeMenu(v => !v) }}
-              style={{
-                width: '100%', height: 36, borderRadius: 18,
-                border: '1.5px solid #EDE8E6', backgroundColor: '#F9F7F5',
-                fontSize: 12, fontWeight: 600, color: '#5C5670', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-              }}
-            >
-              {PAGE_TYPE_LABELS[currentPage.type]} ▾
-            </button>
-            {showPageTypeMenu && (
-              <div
-                style={{
-                  position: 'absolute', bottom: 44, left: 0, right: 0, zIndex: 60,
-                  backgroundColor: '#FFFFFF', borderRadius: 16,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-                  overflow: 'hidden', border: '1px solid #EDE8E6',
-                }}
-                onClick={e => e.stopPropagation()}
-              >
-                {PAGE_TYPE_OPTIONS.map(type => (
-                  <button
-                    key={type}
-                    onClick={() => changePageType(type)}
-                    style={{
-                      display: 'block', width: '100%', padding: '12px 16px',
-                      textAlign: 'left', fontSize: 13, fontWeight: currentPage.type === type ? 700 : 400,
-                      color: currentPage.type === type ? config.colors.primary : '#2C2125',
-                      backgroundColor: currentPage.type === type ? `${config.colors.primary}11` : 'transparent',
-                      border: 'none', cursor: 'pointer',
-                    }}
-                  >
-                    {PAGE_TYPE_LABELS[type]}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Add page */}
-          <button
-            onClick={addPage}
-            style={{
-              height: 36, padding: '0 12px', borderRadius: 18,
-              border: `1.5px solid ${config.colors.primary}`,
-              backgroundColor: 'transparent', color: config.colors.primary,
-              fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
+              border: '1.5px solid #EDE8E6',
+              backgroundColor: 'white',
+              cursor: canGoBack ? 'pointer' : 'not-allowed',
+              opacity: canGoBack ? 1 : 0.35,
+              fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            + Página
+            ←
           </button>
 
-          {/* Next */}
+          {/* Page dots (max 12 visible) */}
+          <div className="flex-1 flex items-center justify-center gap-1 overflow-hidden">
+            <span className="text-xs font-semibold" style={{ color: '#2C2125', whiteSpace: 'nowrap' }}>
+              Pág {currentPageIndex + 1}/{pages.length}
+            </span>
+            <div className="flex gap-1 ml-2" style={{ maxWidth: 120, overflow: 'hidden' }}>
+              {pages.slice(0, 12).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setCurrentPageIndex(i); setSelectedElementId(null) }}
+                  style={{
+                    flexShrink: 0,
+                    width: currentPageIndex === i ? 16 : 6,
+                    height: 6,
+                    borderRadius: 99,
+                    border: 'none',
+                    backgroundColor: currentPageIndex === i ? config.colors.primary : '#D4CCCB',
+                    cursor: 'pointer',
+                    padding: 0,
+                    transition: 'all 0.2s ease',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
           <button
-            onClick={() => { setCurrentPageIndex(i => Math.min(pages.length - 1, i + 1)); setActiveTextSlotId(null); setSelectedElementId(null) }}
-            disabled={currentPageIndex === pages.length - 1}
+            onClick={() => { setCurrentPageIndex(i => Math.min(pages.length - 1, i + 1)); setSelectedElementId(null) }}
+            disabled={!canGoNext}
             style={{
               width: 36, height: 36, borderRadius: '50%',
-              border: '1.5px solid #EDE8E6', backgroundColor: '#FFFFFF',
-              fontSize: 16, cursor: currentPageIndex === pages.length - 1 ? 'not-allowed' : 'pointer',
-              opacity: currentPageIndex === pages.length - 1 ? 0.4 : 1, flexShrink: 0,
-            }}
-          >→</button>
-        </div>
-
-        {/* Finalize bar */}
-        <div className="px-4 pb-2">
-          <button
-            onClick={handleFinalize}
-            disabled={isExporting}
-            style={{
-              width: '100%', height: 48, borderRadius: 24,
-              backgroundColor: config.colors.primary,
-              color: '#FFFFFF', fontSize: 15, fontWeight: 700,
-              border: 'none', cursor: isExporting ? 'not-allowed' : 'pointer',
-              opacity: isExporting ? 0.7 : 1,
-              boxShadow: `0 4px 16px ${config.colors.primary}44`,
+              border: '1.5px solid #EDE8E6',
+              backgroundColor: 'white',
+              cursor: canGoNext ? 'pointer' : 'not-allowed',
+              opacity: canGoNext ? 1 : 0.35,
+              fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            {isExporting ? 'Exportando... ⏳' : `Finalizar álbum — Baixar PDF →`}
+            →
+          </button>
+        </div>
+
+        {/* Actions row */}
+        <div
+          className="flex items-center gap-2 px-4 pb-3"
+          style={{ borderTop: '1px solid #F0EDE9' }}
+        >
+          <button
+            onClick={handleAddPage}
+            className="flex-1 py-2.5 rounded-xl text-xs font-semibold"
+            style={{
+              border: `1.5px solid ${config.colors.primary}`,
+              color: config.colors.primary,
+              backgroundColor: 'transparent',
+              cursor: 'pointer',
+            }}
+          >
+            + Nova pág
+          </button>
+
+          <button
+            onClick={() => !isLocked && setShowPageTypeMenu(true)}
+            className="flex-1 py-2.5 rounded-xl text-xs font-semibold"
+            style={{
+              border: '1.5px solid #EDE8E6',
+              color: isLocked ? '#C4B8BC' : '#2C2125',
+              backgroundColor: 'transparent',
+              cursor: isLocked ? 'not-allowed' : 'pointer',
+            }}
+          >
+            Tipo: {PAGE_TYPE_LABELS[currentPage?.type || 'photo_single']} ▾
+          </button>
+
+          <button
+            onClick={handleFinalize}
+            className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white"
+            style={{
+              backgroundColor: config.colors.primary,
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: `0 2px 8px ${config.colors.primary}44`,
+            }}
+          >
+            Finalizar ✓
           </button>
         </div>
       </div>
