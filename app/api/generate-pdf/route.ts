@@ -1,63 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { generateAlbumPDF } from '@/lib/pdf-generator'
+import { AlbumFormat } from '@/lib/types'
 
-// Must use nodejs runtime for @react-pdf/renderer
-export const runtime = 'nodejs'
-export const maxDuration = 60
-
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json()
-    const {
-      title = 'Meu Album',
-      subtitle = 'Momentu',
-      pageCount = 8,
-      templateColor = '#C9607A',
-      templateColor2 = '#A8485F',
-      templateId = '',
-      pages = null,
-      photos = [],
-    } = body
+    const { pageImages, format, purpose } = await req.json()
 
-    // Dynamic imports to avoid SSR issues
-    const React = await import('react')
-    const { renderToBuffer } = await import('@react-pdf/renderer')
-    const { FullAlbumPDF } = await import('@/lib/pdf-document')
+    if (!pageImages?.length || !format) {
+      return NextResponse.json({ error: 'pageImages e format são obrigatórios' }, { status: 400 })
+    }
 
-    const element = React.createElement(FullAlbumPDF, {
-      title: String(title),
-      subtitle: String(subtitle),
-      pageCount: Number(pageCount),
-      templateColor: String(templateColor),
-      templateColor2: String(templateColor2),
-      templateId: String(templateId),
-      pages: Array.isArray(pages) ? pages : undefined,
-      photos: Array.isArray(photos) ? photos : [],
-    })
+    const pdfBytes = await generateAlbumPDF(
+      pageImages,
+      format as AlbumFormat,
+      purpose || 'digital'
+    )
 
-    // eslint-disable-next-line
-    const pdfBuffer = await renderToBuffer(element as Parameters<typeof renderToBuffer>[0])
-
-    const safeTitle = String(title)
-      .replace(/[^a-z0-9\s\-áàâãéèêíïóôõöúüç]/gi, '')
-      .trim() || 'album'
-
-    const uint8Array = new Uint8Array(pdfBuffer)
-
-    return new NextResponse(uint8Array, {
-      status: 200,
+    return new NextResponse(Buffer.from(pdfBytes), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${safeTitle}-momentu.pdf"`,
-        'Content-Length': String(uint8Array.length),
-        'Cache-Control': 'no-cache',
+        'Content-Disposition': 'attachment; filename="album-momentu.pdf"',
       },
     })
   } catch (error) {
     console.error('PDF generation error:', error)
-    const errMsg = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json(
-      { error: 'Erro ao gerar PDF. Tente novamente.', details: errMsg },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Erro ao gerar PDF' }, { status: 500 })
   }
 }

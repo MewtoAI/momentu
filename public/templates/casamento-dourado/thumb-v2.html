@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Casamento Dourado — Thumbnail Preview v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #2C1810;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 24px;
+      padding: 40px;
+      font-family: 'Lato', sans-serif;
+    }
+
+    h1 {
+      color: #E8D5A3;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      font-weight: 300;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    /* Container principal — simula a página 20x20cm */
+    .template-preview {
+      position: relative;
+      width: 500px;
+      height: 500px;
+      /* O bg.svg é o fundo real do template */
+      background-image: url('./print_20x20/bg.svg');
+      background-size: cover;
+      background-repeat: no-repeat;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    /* Layout de fotos placeholder — simula o editor Momentu */
+    /* Zona de fotos: 20%-80% do canvas */
+    .photos-area {
+      position: absolute;
+      top: 20%;
+      left: 20%;
+      width: 60%;
+      height: 60%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1.4fr 1fr;
+      gap: 6px;
+    }
+
+    /* Foto 1 — principal, coluna esquerda, altura 2x */
+    .photo-slot {
+      border-radius: 4px;
+      background: linear-gradient(135deg, #E8D5A3 0%, #C9A84C22 50%, #E8D5A3 100%);
+      border: 1.5px solid #C9A84C44;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .photo-slot::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        #C9A84C11 10px,
+        #C9A84C11 11px
+      );
+    }
+
+    .photo-slot-icon {
+      font-size: 22px;
+      opacity: 0.35;
+      z-index: 1;
+    }
+
+    /* Foto 1 — grande, ocupa 2 linhas */
+    .photo-main {
+      grid-row: span 2;
+    }
+
+    /* Elementos sobre o template */
+    .element {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    /* Alianças — topo centro */
+    .rings {
+      top: 4%;
+      left: 38%;
+      width: 24%;
+    }
+
+    /* Coração inferior esquerdo */
+    .heart-left {
+      bottom: 7%;
+      left: 10%;
+      width: 8%;
+    }
+
+    /* Coração inferior direito */
+    .heart-right {
+      bottom: 7%;
+      right: 9%;
+      width: 6%;
+    }
+
+    /* Texto do título placeholder — no rodapé do template */
+    .template-title {
+      position: absolute;
+      bottom: 6%;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .template-title .couple {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13px;
+      font-weight: 400;
+      color: #C9A84C;
+      letter-spacing: 0.18em;
+      display: block;
+      opacity: 0.85;
+    }
+
+    .template-title .date {
+      font-family: 'Lato', sans-serif;
+      font-size: 7px;
+      font-weight: 300;
+      color: #C9A84C;
+      letter-spacing: 0.3em;
+      display: block;
+      margin-top: 2px;
+      opacity: 0.55;
+      text-transform: uppercase;
+    }
+
+    /* Info panel abaixo */
+    .info {
+      color: #E8D5A3;
+      font-size: 12px;
+      font-weight: 300;
+      opacity: 0.6;
+      text-align: center;
+      line-height: 1.8;
+    }
+    .info code {
+      font-family: monospace;
+      background: #3a2218;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Momentu · Casamento Dourado — Preview v2</h1>
+
+  <div class="template-preview">
+
+    <!-- FOTOS PLACEHOLDER — zona central 20%-80% -->
+    <div class="photos-area">
+      <div class="photo-slot photo-main">
+        <span class="photo-slot-icon">📷</span>
+      </div>
+      <div class="photo-slot">
+        <span class="photo-slot-icon">📷</span>
+      </div>
+      <div class="photo-slot">
+        <span class="photo-slot-icon">📷</span>
+      </div>
+    </div>
+
+    <!-- ELEMENTO: Alianças (rings.svg) -->
+    <img class="element rings" src="./elements/rings.svg" alt="Alianças"/>
+
+    <!-- ELEMENTO: Coração esquerdo -->
+    <img class="element heart-left" src="./elements/heart.svg" alt="Coração"/>
+
+    <!-- ELEMENTO: Coração direito -->
+    <img class="element heart-right" src="./elements/heart.svg" alt="Coração"/>
+
+    <!-- TEXTO DO TEMPLATE -->
+    <div class="template-title">
+      <span class="couple">Ana &amp; Marcos</span>
+      <span class="date">14 · fevereiro · 2026</span>
+    </div>
+
+  </div>
+
+  <div class="info">
+    <strong style="color:#C9A84C; font-family:'Cormorant Garamond',serif; font-size:15px;">Casamento Dourado</strong><br>
+    Formato: <code>print_20x20</code> · 300×300 SVG units · 20×20cm<br>
+    Zona sagrada: <code>(60,60)→(240,240)</code> — limpa para as fotos<br>
+    Elementos interativos: alianças + corações · Fundo: bg.svg real
+  </div>
+
+  <script>
+    // Ao carregar, logar dimensões para debug
+    window.addEventListener('load', () => {
+      const preview = document.querySelector('.template-preview');
+      const rect = preview.getBoundingClientRect();
+      console.log('Template preview:', rect.width + 'x' + rect.height + 'px');
+      console.log('SVG background loaded:', preview.style.backgroundImage || 'via CSS');
+    });
+  </script>
+</body>
+</html>

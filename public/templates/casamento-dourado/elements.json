@@ -3,6 +3,7 @@
     {
       "id": "ring-duo",
       "type": "ornament",
+      "label": "Alianças",
       "src": "/templates/casamento-dourado/elements/rings.svg",
       "x": 0.38,
       "y": 0.04,
@@ -13,6 +14,7 @@
     {
       "id": "heart-1",
       "type": "sticker",
+      "label": "Coração",
       "src": "/templates/casamento-dourado/elements/heart.svg",
       "x": 0.10,
       "y": 0.88,
@@ -23,6 +25,7 @@
     {
       "id": "heart-2",
       "type": "sticker",
+      "label": "Coração (menor)",
       "src": "/templates/casamento-dourado/elements/heart.svg",
       "x": 0.82,
       "y": 0.88,
@@ -31,45 +34,25 @@
       "locked": false
     },
     {
-      "id": "floral-tl",
-      "type": "ornament",
-      "src": "/templates/casamento-dourado/elements/floral-corner.svg",
-      "x": 0.01,
-      "y": 0.01,
-      "width": 0.18,
-      "height": 0.18,
-      "locked": true
-    },
-    {
-      "id": "floral-br",
-      "type": "ornament",
-      "src": "/templates/casamento-dourado/elements/floral-corner.svg",
-      "x": 0.81,
-      "y": 0.81,
-      "width": 0.18,
-      "height": 0.18,
-      "locked": true
-    }
-  ],
-  "default": [
-    {
-      "id": "ring-duo",
-      "type": "ornament",
-      "src": "/templates/casamento-dourado/elements/rings.svg",
-      "x": 0.38,
-      "y": 0.04,
-      "width": 0.24,
-      "height": 0.08,
+      "id": "ring-left",
+      "type": "sticker",
+      "label": "Anel Esquerdo",
+      "src": "/templates/casamento-dourado/elements/ring-left.svg",
+      "x": 0.05,
+      "y": 0.44,
+      "width": 0.07,
+      "height": 0.07,
       "locked": false
     },
     {
-      "id": "heart-1",
+      "id": "ring-right",
       "type": "sticker",
-      "src": "/templates/casamento-dourado/elements/heart.svg",
-      "x": 0.10,
-      "y": 0.88,
-      "width": 0.08,
-      "height": 0.08,
+      "label": "Anel Direito",
+      "src": "/templates/casamento-dourado/elements/ring-right.svg",
+      "x": 0.88,
+      "y": 0.44,
+      "width": 0.07,
+      "height": 0.07,
       "locked": false
     }
   ]
