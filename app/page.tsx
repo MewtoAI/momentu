@@ -1,74 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { SparkleIcon, AlbumIcon } from '@/components/icons'
+import Image from 'next/image'
+import { SparkleIcon } from '@/components/icons'
+import { createClient } from '@/lib/supabase/client'
 import type { GalleryAlbum } from '@/lib/types'
-
-// ─── Mock Gallery Data ────────────────────────────────────────────────────────
-
-const MOCK_GALLERY: GalleryAlbum[] = [
-  {
-    id: '1',
-    title: 'Casamento na Praia',
-    style: 'romantic',
-    occasion: 'wedding',
-    productType: 'print',
-    thumbnailUrl: '/gallery/placeholder-wedding.jpg',
-    previewPages: [],
-    isFeatured: true,
-  },
-  {
-    id: '2',
-    title: 'Primeiro Ano — Bernardo',
-    style: 'minimal',
-    occasion: 'baby',
-    productType: 'print',
-    thumbnailUrl: '/gallery/placeholder-baby.jpg',
-    previewPages: [],
-    isFeatured: true,
-  },
-  {
-    id: '3',
-    title: 'Viagem por Portugal',
-    style: 'vintage',
-    occasion: 'travel',
-    productType: 'digital',
-    thumbnailUrl: '/gallery/placeholder-travel.jpg',
-    previewPages: [],
-    isFeatured: false,
-  },
-  {
-    id: '4',
-    title: 'Formatura 2025',
-    style: 'classic',
-    occasion: 'graduation',
-    productType: 'print',
-    thumbnailUrl: '/gallery/placeholder-graduation.jpg',
-    previewPages: [],
-    isFeatured: false,
-  },
-  {
-    id: '5',
-    title: 'Festa dos 70 anos da Vovó',
-    style: 'vibrant',
-    occasion: 'birthday',
-    productType: 'print',
-    thumbnailUrl: '/gallery/placeholder-birthday.jpg',
-    previewPages: [],
-    isFeatured: false,
-  },
-  {
-    id: '6',
-    title: 'Nossa Família 2024',
-    style: 'bohemian',
-    occasion: 'family',
-    productType: 'print',
-    thumbnailUrl: '/gallery/placeholder-family.jpg',
-    previewPages: [],
-    isFeatured: false,
-  },
-]
 
 const OCCASION_LABELS: Record<string, string> = {
   all: 'Todos',
@@ -114,17 +51,27 @@ function GalleryCard({ album }: { album: GalleryAlbum }) {
   return (
     <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-[#2C1810]/5">
       {/* Thumbnail */}
-      <div
-        className={`aspect-square bg-gradient-to-br ${STYLE_GRADIENT[album.style]} relative overflow-hidden`}
-      >
-        <div className="absolute inset-0 flex items-center justify-center opacity-30">
-          <AlbumIcon size={48} color="#C9607A" />
-        </div>
+      <div className={`aspect-square bg-gradient-to-br ${STYLE_GRADIENT[album.style]} relative overflow-hidden`}>
+        {album.thumbnailUrl ? (
+          <Image
+            src={album.thumbnailUrl}
+            alt={album.title}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            sizes="(max-width: 768px) 50vw, 33vw"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center opacity-20">
+            <SparkleIcon size={48} color="#C9607A" />
+          </div>
+        )}
         {album.isFeatured && (
-          <div className="absolute top-2 right-2 bg-[#C9A84C] text-white text-[10px] px-2 py-0.5 rounded-full font-medium">
+          <div className="absolute top-2 right-2 bg-[#C9A84C] text-white text-[10px] px-2 py-0.5 rounded-full font-medium shadow-sm">
             Destaque
           </div>
         )}
+        {/* Overlay gradient on hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
       {/* Info */}
@@ -150,11 +97,38 @@ function GalleryCard({ album }: { album: GalleryAlbum }) {
 
 export default function HomePage() {
   const [activeFilter, setActiveFilter] = useState<string>('all')
+  const [gallery, setGallery] = useState<GalleryAlbum[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const filtered =
-    activeFilter === 'all'
-      ? MOCK_GALLERY
-      : MOCK_GALLERY.filter((a) => a.occasion === activeFilter)
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('gallery_albums')
+      .select('*')
+      .order('is_featured', { ascending: false })
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setGallery(data.map((a) => ({
+            id: a.id,
+            title: a.title,
+            style: a.style,
+            occasion: a.occasion,
+            productType: a.product_type,
+            thumbnailUrl: a.thumbnail_url,
+            previewPages: a.preview_pages || [],
+            isFeatured: a.is_featured,
+          })))
+        }
+        setLoading(false)
+      })
+  }, [])
+
+  const filtered = loading
+    ? []
+    : activeFilter === 'all'
+    ? gallery
+    : gallery.filter((a) => a.occasion === activeFilter)
 
   return (
     <div className="min-h-screen bg-[#FAF7F5]">
@@ -233,11 +207,25 @@ export default function HomePage() {
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {filtered.map((album) => (
-            <GalleryCard key={album.id} album={album} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl overflow-hidden border border-[#2C1810]/5 animate-pulse">
+                <div className="aspect-square bg-[#FAF7F5]" />
+                <div className="p-3 space-y-2">
+                  <div className="h-3 bg-[#FAF7F5] rounded w-3/4" />
+                  <div className="h-2 bg-[#FAF7F5] rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {filtered.map((album) => (
+              <GalleryCard key={album.id} album={album} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Footer */}
