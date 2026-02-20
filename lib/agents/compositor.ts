@@ -70,44 +70,19 @@ function calculateSlotDimensions(slot: PhotoSlot): { x: number; y: number; width
 
 /**
  * Processa uma foto para se encaixar perfeitamente no slot (object-fit: cover)
+ * Sharp já faz cover internamente — sem resize + extract manual
  */
 async function fitPhotoToSlot(photoBuffer: Buffer, slotDimensions: { width: number; height: number }): Promise<Buffer> {
   const { width: slotWidth, height: slotHeight } = slotDimensions
 
-  // Obter dimensões da foto original
-  const metadata = await sharp(photoBuffer).metadata()
-  const photoWidth = metadata.width || 1000
-  const photoHeight = metadata.height || 1000
-
-  // Calcular qual dimensão limita (para fazer cover)
-  const photoRatio = photoWidth / photoHeight
-  const slotRatio = slotWidth / slotHeight
-
-  let resizeWidth: number
-  let resizeHeight: number
-
-  if (photoRatio > slotRatio) {
-    // Foto é mais larga que o slot → altura limita
-    resizeHeight = slotHeight
-    resizeWidth = Math.round(slotHeight * photoRatio)
-  } else {
-    // Foto é mais alta que o slot → largura limita
-    resizeWidth = slotWidth
-    resizeHeight = Math.round(slotWidth / photoRatio)
-  }
-
-  // Resize e crop centralizado
+  // sharp com fit:'cover' + position:'attention' (detecta área de interesse automaticamente)
+  // .png() garante formato correto para compositing (sem artefatos de JPEG)
   const processedBuffer = await sharp(photoBuffer)
-    .resize(resizeWidth, resizeHeight, {
+    .resize(slotWidth, slotHeight, {
       fit: 'cover',
-      position: 'center'
+      position: 'attention' // prioriza faces e bordas — melhor crop automático
     })
-    .extract({
-      left: Math.round((resizeWidth - slotWidth) / 2),
-      top: Math.round((resizeHeight - slotHeight) / 2),
-      width: slotWidth,
-      height: slotHeight
-    })
+    .png()
     .toBuffer()
 
   return processedBuffer
@@ -165,36 +140,42 @@ export async function composePage(composition: PageComposition, sessionId: strin
   try {
     console.log(`Composing page ${composition.pageIndex}...`)
 
-    // 1. Baixar e processar background
+    // 1. Baixar background e resolver para buffer PNG (evita lazy chain issues)
     const bgBuffer = await downloadImage(composition.backgroundUrl)
-    
-    // Resize background para as dimensões da página
-    let pageImage = sharp(bgBuffer)
+    const resolvedBg = await sharp(bgBuffer)
       .resize(PAGE_WIDTH, PAGE_HEIGHT, { fit: 'cover', position: 'center' })
+      .png()
+      .toBuffer()
 
-    // 2. Processar e compor cada foto
+    // 2. Processar e compor cada foto nos slots
     const compositeOperations: Array<{ input: Buffer; top: number; left: number }> = []
 
     for (const photo of composition.photos) {
-      const photoBuffer = await downloadImage(photo.url)
-      const slotDimensions = calculateSlotDimensions(photo.slot)
-      
-      const fittedPhotoBuffer = await fitPhotoToSlot(photoBuffer, {
-        width: slotDimensions.width,
-        height: slotDimensions.height
-      })
+      try {
+        const photoBuffer = await downloadImage(photo.url)
+        const slotDimensions = calculateSlotDimensions(photo.slot)
+        
+        console.log(`    Fitting photo to slot: ${slotDimensions.width}x${slotDimensions.height} at (${slotDimensions.x}, ${slotDimensions.y})`)
 
-      compositeOperations.push({
-        input: fittedPhotoBuffer,
-        top: slotDimensions.y,
-        left: slotDimensions.x
-      })
+        const fittedPhotoBuffer = await fitPhotoToSlot(photoBuffer, {
+          width: slotDimensions.width,
+          height: slotDimensions.height
+        })
+
+        compositeOperations.push({
+          input: fittedPhotoBuffer,
+          top: slotDimensions.y,
+          left: slotDimensions.x
+        })
+      } catch (photoErr) {
+        console.error(`    Failed to process photo ${photo.url}:`, photoErr)
+      }
     }
 
-    // 3. Aplicar todas as composições de foto
-    if (compositeOperations.length > 0) {
-      pageImage = pageImage.composite(compositeOperations)
-    }
+    console.log(`    Compositing ${compositeOperations.length} photo(s) onto background`)
+
+    // 3. Compor fotos sobre o background (background já é buffer PNG)
+    let compositeInputs = [...compositeOperations]
 
     // 4. Adicionar texto se houver
     if (composition.text && composition.text.content) {
@@ -203,16 +184,18 @@ export async function composePage(composition: PageComposition, sessionId: strin
         composition.text.position,
         composition.text.style
       )
-      
-      pageImage = pageImage.composite([{
+      compositeInputs.push({
         input: Buffer.from(textSVG),
         top: 0,
         left: 0
-      }])
+      })
     }
 
-    // 5. Gerar buffer final
-    const finalBuffer = await pageImage.png({ quality: 90 }).toBuffer()
+    // 5. Gerar buffer final — uma única chamada composite sobre o background resolvido
+    const finalBuffer = await sharp(resolvedBg)
+      .composite(compositeInputs)
+      .png({ quality: 90 })
+      .toBuffer()
 
     // 6. Salvar no Supabase Storage
     const storagePath = `pdfs/${sessionId}/page_${composition.pageIndex}.png`
