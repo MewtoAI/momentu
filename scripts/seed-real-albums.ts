@@ -96,65 +96,113 @@ const ALBUM_TEMPLATES = [
   },
 ]
 
+/**
+ * Extrai JSON de uma resposta que pode conter markdown code blocks
+ */
+function extractJSON(text: string): string {
+  let cleaned = text.trim()
+  const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (codeBlockMatch) {
+    cleaned = codeBlockMatch[1].trim()
+  }
+  const jsonStart = cleaned.indexOf('{')
+  const jsonEnd = cleaned.lastIndexOf('}')
+  if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+    cleaned = cleaned.slice(jsonStart, jsonEnd + 1)
+  }
+  return cleaned
+}
+
+/**
+ * Gera prompt emocional e contextual para a AI criar álbuns memoráveis
+ */
+function buildAlbumPrompt(
+  photos: PhotoMeta[],
+  questionnaire: any,
+  pageCount: number
+): string {
+  const { occasion, style, specialMessage, names, productType } = questionnaire
+
+  const photoDescriptions = photos.map((p, i) => ({
+    id: p.id,
+    url: p.url,
+    isPortrait: p.isPortrait,
+    index: i
+  }))
+
+  const occasionContext: Record<string, string> = {
+    wedding: `Este é o dia mais importante da vida de ${names || 'um casal apaixonado'}. Cada foto carrega a emoção de um momento único. O primeiro olhar, a troca de alianças, a dança, os abraços da família. Crie legendas que façam quem lê sentir um nó na garganta.`,
+    travel: `Aventuras que viram histórias para contar. ${names || 'Viajantes'} explorando o mundo, colecionando momentos únicos. Crie legendas que transportem o leitor para esses lugares.`,
+    family: `Família é onde a vida começa e o amor nunca termina. ${names || 'Esta família'} está criando memórias que vão passar de geração em geração.`,
+    baby: `Os primeiros momentos de uma nova vida. Cada foto é um tesouro. Este bebê está descobrindo o mundo.`,
+    birthday: `Uma celebração de vida! Comemorando mais um ano de conquistas, risadas e memórias.`,
+    graduation: `Anos de dedicação culminando neste momento. Uma conquista para celebrar.`,
+  }
+
+  const styleGuidance: Record<string, string> = {
+    romantic: 'Tom: suave, emocional, poético. Evoque amor e ternura.',
+    classic: 'Tom: elegante, atemporal, sofisticado.',
+    vibrant: 'Tom: alegre, energético, cheio de vida!',
+    minimal: 'Tom: clean, contemplativo, frases curtas e impactantes.',
+    vintage: 'Tom: nostálgico, saudosista, como uma carta antiga.',
+    bohemian: 'Tom: livre, artístico, autêntico.',
+  }
+
+  return `Você é um designer de álbuns de fotos profissional brasileiro com talento para contar histórias.
+
+## CONTEXTO EMOCIONAL
+${occasionContext[occasion] || 'Momentos especiais merecem ser eternizados.'}
+${specialMessage ? `Mensagem do cliente: "${specialMessage}"` : ''}
+
+## TOM E ESTILO
+${styleGuidance[style] || styleGuidance.romantic}
+
+## DADOS
+- Ocasião: ${occasion}
+- Estilo: ${style}
+- Nomes: ${names || 'não especificado'}
+- Tipo: ${productType}
+- Fotos: ${photos.length}
+- Páginas: ${pageCount}
+
+## FOTOS DISPONÍVEIS
+${JSON.stringify(photoDescriptions, null, 2)}
+
+## REGRAS
+1. Primeira página = capa (cover) com a foto mais impactante
+2. Fotos paisagem em "single", retrato em "double" ou "triple"
+3. NUNCA repita fotos
+4. Crie narrativa visual
+
+## REGRAS DE TEXTO (CRÍTICO!)
+- TODOS os textos em PORTUGUÊS DO BRASIL
+- Captions ÚNICAS e MEMORÁVEIS
+- Nada de frases genéricas como "Momento especial" ou "Memórias felizes"
+
+## EXEMPLOS BOAS CAPTIONS
+✅ "O segundo em que o sim saiu dos seus lábios, o mundo parou"
+✅ "Paris não estava pronta para a gente"
+✅ "Avó e neta: 70 anos de diferença, o mesmo sorriso"
+
+## FORMATO JSON (sem markdown!)
+{
+  "pages": [{"index": 0, "layoutType": "cover", "photos": [{"id": "1", "url": "..."}], "title": "...", "caption": "...", "mood": "..."}],
+  "albumTitle": "...",
+  "overallNarrative": "..."
+}
+
+layoutTypes: cover, single, double, triple, text_focus, back_cover
+
+RESPONDA APENAS COM O JSON.`
+}
+
 async function planAlbumWithAI(
   photos: PhotoMeta[],
   questionnaire: any,
   pageCount: number
 ): Promise<AIAlbumPlan | null> {
   try {
-    const { occasion, style, specialMessage, names, productType } = questionnaire
-
-    const photoDescriptions = photos.map((p, i) => ({
-      id: p.id,
-      url: p.url,
-      isPortrait: p.isPortrait,
-      index: i
-    }))
-
-    const prompt = `You are a professional photo album designer. You will receive information about a user's photos and create an album layout plan.
-
-User's questionnaire:
-- Occasion: ${occasion}
-- Style: ${style}
-- Special message: ${specialMessage}
-- Names: ${names}
-- Product type: ${productType}
-
-Available photos (${photos.length} total):
-${JSON.stringify(photoDescriptions, null, 2)}
-
-Create a ${pageCount}-page album for the gallery showcase.
-
-Rules:
-1. First page is always the cover (layoutType: "cover") with the best/most representative photo
-2. Mix layouts creatively based on photo orientations
-3. Generate meaningful captions in Portuguese (pt-BR) based on the occasion and style
-4. For wedding: romantic, emotional captions. For travel: adventurous. For family: tender.
-5. Landscape photos work best as "single". Portrait photos can be "double" or "triple".
-6. Every 4-5 pages, include a "text_focus" page with a quote or message.
-7. Last page is "back_cover"
-8. Choose photos that tell a story — chronological or emotional flow.
-9. Use different photos on each page — don't repeat.
-
-Return ONLY valid JSON matching this schema:
-{
-  "pages": [
-    {
-      "index": 0,
-      "layoutType": "cover",
-      "photos": [{"id": "...", "url": "..."}],
-      "title": "Album title",
-      "caption": "Subtitle or date",
-      "mood": "romantic/adventurous/tender/etc"
-    }
-  ],
-  "albumTitle": "Main album title",
-  "overallNarrative": "Brief description of the album story"
-}
-
-Available layoutTypes: cover, single, double, triple, text_focus, back_cover
-
-Return ONLY the JSON. No markdown, no explanation, no \`\`\`json blocks.`
+    const prompt = buildAlbumPrompt(photos, questionnaire, pageCount)
 
     console.log(`\n🤖 Calling OpenAI (gpt-4o) for "${questionnaire.occasion}" album...`)
 
@@ -163,25 +211,19 @@ Return ONLY the JSON. No markdown, no explanation, no \`\`\`json blocks.`
       messages: [
         {
           role: 'system',
-          content: 'You are a professional photo album designer AI. You respond ONLY with valid JSON, no markdown.'
+          content: 'Você é um designer de álbuns brasileiro. Responda APENAS com JSON válido, sem markdown. Todos os textos em português do Brasil.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      temperature: 0.8,
-      max_tokens: 2000,
+      temperature: 0.7,
+      max_tokens: 3000,
     })
 
     const responseText = completion.choices[0].message.content?.trim() || ''
-    
-    // Remove markdown code blocks if present
-    let jsonText = responseText
-    if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/^```json?\n?/, '').replace(/\n?```$/, '')
-    }
-
+    const jsonText = extractJSON(responseText)
     const aiPlan: AIAlbumPlan = JSON.parse(jsonText)
     
     if (!aiPlan.pages || !Array.isArray(aiPlan.pages) || aiPlan.pages.length === 0) {

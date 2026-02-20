@@ -37,6 +37,29 @@ const STYLE_COLORS: Record<string, string> = {
   bohemian: 'bg-emerald-100 text-emerald-700',
 }
 
+interface PhotoSlot {
+  url: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+interface TextSlot {
+  text: string
+  x: number
+  y: number
+  width: number
+  height: number
+  align: string
+}
+
+interface PreviewPage {
+  photos: PhotoSlot[]
+  texts: TextSlot[]
+  caption?: string
+}
+
 interface GalleryAlbum {
   id: string
   title: string
@@ -44,8 +67,8 @@ interface GalleryAlbum {
   occasion: string
   productType: string
   thumbnailUrl: string
-  previewPages: any[] // Array de estruturas de página
-  albumStructure?: any
+  previewPages: PreviewPage[]
+  albumStructure?: Record<string, unknown>
 }
 
 export default function GalleryDetailPage() {

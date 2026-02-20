@@ -174,6 +174,25 @@ export interface PhotoGrouping {
   photoIds: string[]  // photos in this page
 }
 
+export interface GalleryPreviewPage {
+  photos: Array<{
+    url: string
+    x: number
+    y: number
+    width: number
+    height: number
+  }>
+  texts: Array<{
+    text: string
+    x: number
+    y: number
+    width: number
+    height: number
+    align: string
+  }>
+  caption?: string
+}
+
 export interface GalleryAlbum {
   id: string
   title: string
@@ -181,7 +200,7 @@ export interface GalleryAlbum {
   occasion: AlbumOccasion
   productType: AlbumPurpose
   thumbnailUrl: string
-  previewPages: string[]
+  previewPages: GalleryPreviewPage[]
   isFeatured: boolean
 }
 
