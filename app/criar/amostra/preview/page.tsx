@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { PRINT_PRICING, DIGITAL_PRICE } from '@/lib/types'
 import type { AlbumSession, AlbumStyle } from '@/lib/types'
 import { STYLE_CONFIGS } from '@/lib/styles'
+import { AlbumPagePreview } from '@/components/album-page-preview'
 
 // ─── Style gradients ──────────────────────────────────────────────────────────
 
@@ -130,7 +131,6 @@ function PreviewInner() {
         .from('generation_jobs')
         .select('result_url, status')
         .eq('session_id', sessionId)
-        .eq('status', 'done')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -138,7 +138,8 @@ function PreviewInner() {
       if (sessionRes.data) setSession(sessionRes.data as AlbumSession)
       if (jobRes.data?.result_url) {
         try {
-          setAlbumStructure(JSON.parse(jobRes.data.result_url))
+          const parsed = JSON.parse(jobRes.data.result_url)
+          setAlbumStructure(parsed)
         } catch {
           // ignore parse errors
         }
@@ -231,19 +232,52 @@ function PreviewInner() {
         {/* Carousel */}
         <div className="relative mb-4">
           <div className="flex gap-4">
-            {[1, 2].map((pageNum, idx) => (
-              <div
-                key={pageNum}
-                className="flex-1 cursor-pointer"
-                onClick={() => setActivePage(idx)}
-              >
-                <SamplePagePlaceholder
-                  style={style}
-                  pageNumber={pageNum}
-                  isActive={activePage === idx}
-                />
-              </div>
-            ))}
+            {albumStructure?.pages && Array.isArray(albumStructure.pages) ? (
+              // Render real album pages
+              (albumStructure.pages as any[]).slice(0, 2).map((page: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="flex-1 cursor-pointer"
+                  onClick={() => setActivePage(idx)}
+                >
+                  <AlbumPagePreview
+                    style={style}
+                    photos={page.photos.map((p: any) => ({
+                      url: p.url,
+                      x: page.layout.photoSlots[page.photos.indexOf(p)]?.x ?? 0.1,
+                      y: page.layout.photoSlots[page.photos.indexOf(p)]?.y ?? 0.1,
+                      width: page.layout.photoSlots[page.photos.indexOf(p)]?.width ?? 0.8,
+                      height: page.layout.photoSlots[page.photos.indexOf(p)]?.height ?? 0.7,
+                    }))}
+                    texts={page.layout.textSlots?.map((slot: any, i: number) => ({
+                      text: page.textHints?.[i] || slot.defaultText || '',
+                      x: slot.x,
+                      y: slot.y,
+                      width: slot.width,
+                      height: slot.height,
+                      align: slot.align,
+                    })) ?? []}
+                    pageNumber={idx + 1}
+                    isActive={activePage === idx}
+                  />
+                </div>
+              ))
+            ) : (
+              // Fallback to placeholder
+              [1, 2].map((pageNum, idx) => (
+                <div
+                  key={pageNum}
+                  className="flex-1 cursor-pointer"
+                  onClick={() => setActivePage(idx)}
+                >
+                  <SamplePagePlaceholder
+                    style={style}
+                    pageNumber={pageNum}
+                    isActive={activePage === idx}
+                  />
+                </div>
+              ))
+            )}
           </div>
 
           {/* Page dots */}

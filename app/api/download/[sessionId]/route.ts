@@ -1,132 +1,120 @@
-// TODO: usar páginas reais quando compositor estiver pronto
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ sessionId: string }> }
+  req: NextRequest,
+  { params }: { params: { sessionId: string } }
 ) {
-  const { sessionId } = await params
-
-  // TODO: Buscar session + generation_job done e usar páginas reais
-  // Por ora retorna PDF placeholder via pdf-lib
-
   try {
-    const pdfDoc = await PDFDocument.create()
-    const page = pdfDoc.addPage([595, 842]) // A4
+    const sessionId = params.sessionId
 
-    // Load font
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+    // 1. Check if PDF already exists in storage
+    const { data: storageFile } = await supabase.storage
+      .from('pdfs')
+      .list(`albums/${sessionId}`, {
+        limit: 1,
+        search: 'album.pdf',
+      })
 
-    const { width, height } = page.getSize()
+    if (storageFile && storageFile.length > 0) {
+      // PDF exists, serve it
+      const { data: pdfData } = await supabase.storage
+        .from('pdfs')
+        .download(`albums/${sessionId}/album.pdf`)
 
-    // Background (light rose)
-    page.drawRectangle({
-      x: 0,
-      y: 0,
-      width,
-      height,
-      color: rgb(0.98, 0.97, 0.96),
-    })
-
-    // Top bar
-    page.drawRectangle({
-      x: 0,
-      y: height - 80,
-      width,
-      height: 80,
-      color: rgb(0.788, 0.376, 0.478), // #C9607A
-    })
-
-    // Title on top bar
-    page.drawText('MOMENTU', {
-      x: 40,
-      y: height - 52,
-      size: 28,
-      font: boldFont,
-      color: rgb(1, 1, 1),
-    })
-    page.drawText('AI Album', {
-      x: 40,
-      y: height - 72,
-      size: 13,
-      font,
-      color: rgb(1, 1, 1),
-    })
-
-    // Main message
-    page.drawText('Seu album Momentu esta sendo preparado...', {
-      x: 40,
-      y: height / 2 + 40,
-      size: 20,
-      font: boldFont,
-      color: rgb(0.172, 0.094, 0.063), // #2C1810
-    })
-
-    page.drawText(
-      'Este e um arquivo de demonstracao. Seu album completo estara disponivel em breve.',
-      {
-        x: 40,
-        y: height / 2,
-        size: 12,
-        font,
-        color: rgb(0.5, 0.4, 0.35),
-        maxWidth: width - 80,
-        lineHeight: 18,
+      if (pdfData) {
+        return new NextResponse(pdfData, {
+          headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="momentu-album-${sessionId.slice(0, 8)}.pdf"`,
+          },
+        })
       }
-    )
+    }
 
-    // Session ID
-    page.drawText(`ID do pedido: ${sessionId}`, {
-      x: 40,
-      y: height / 2 - 50,
-      size: 10,
-      font,
-      color: rgb(0.5, 0.4, 0.35),
-    })
+    // 2. If not exists, check if generation is done
+    const { data: job } = await supabase
+      .from('generation_jobs')
+      .select('result_url, status')
+      .eq('session_id', sessionId)
+      .eq('type', 'full')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
 
-    page.drawText(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, {
-      x: 40,
-      y: height / 2 - 66,
-      size: 10,
-      font,
-      color: rgb(0.5, 0.4, 0.35),
-    })
+    if (!job || job.status !== 'done') {
+      return NextResponse.json(
+        { error: 'Álbum ainda não foi gerado' },
+        { status: 404 }
+      )
+    }
 
-    // Bottom decoration line
-    page.drawLine({
-      start: { x: 40, y: 80 },
-      end: { x: width - 40, y: 80 },
-      thickness: 1,
-      color: rgb(0.788, 0.376, 0.478),
-    })
+    // 3. Generate PDF on-the-fly (placeholder implementation)
+    // TODO: Implement real PDF generation with album structure
+    const placeholderPDF = await generatePlaceholderPDF(sessionId)
 
-    page.drawText('momentu.ai - Albums criados por inteligencia artificial', {
-      x: 40,
-      y: 55,
-      size: 9,
-      font,
-      color: rgb(0.5, 0.4, 0.35),
-    })
+    // 4. Save to storage
+    await supabase.storage
+      .from('pdfs')
+      .upload(`albums/${sessionId}/album.pdf`, placeholderPDF, {
+        contentType: 'application/pdf',
+        upsert: true,
+      })
 
-    const pdfBytes = await pdfDoc.save()
-
-    // Convert Uint8Array to ArrayBuffer for Response compatibility
-    const buffer = pdfBytes.buffer.slice(
-      pdfBytes.byteOffset,
-      pdfBytes.byteOffset + pdfBytes.byteLength
-    )
-
-    return new Response(buffer as ArrayBuffer, {
+    // 5. Serve the PDF
+    return new NextResponse(Buffer.from(placeholderPDF), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="album-momentu-${sessionId.slice(0, 8)}.pdf"`,
-        'Cache-Control': 'no-store',
+        'Content-Disposition': `attachment; filename="momentu-album-${sessionId.slice(0, 8)}.pdf"`,
       },
     })
   } catch (error) {
-    console.error('PDF generation error:', error)
-    return new Response('Erro ao gerar PDF', { status: 500 })
+    console.error('Download error:', error)
+    return NextResponse.json({ error: 'Erro ao baixar PDF' }, { status: 500 })
   }
+}
+
+async function generatePlaceholderPDF(sessionId: string): Promise<Uint8Array> {
+  // Simple placeholder PDF using pdf-lib
+  const { PDFDocument, rgb } = await import('pdf-lib')
+  const pdfDoc = await PDFDocument.create()
+
+  pdfDoc.setTitle('Álbum Momentu')
+  pdfDoc.setCreator('Momentu — momentu.app')
+
+  const page = pdfDoc.addPage([595, 842]) // A4
+  page.drawText('Seu álbum Momentu', {
+    x: 50,
+    y: 800,
+    size: 24,
+    color: rgb(0.79, 0.38, 0.48), // #C9607A
+  })
+
+  page.drawText(`Session ID: ${sessionId}`, {
+    x: 50,
+    y: 760,
+    size: 12,
+    color: rgb(0.17, 0.09, 0.06), // #2C1810
+  })
+
+  page.drawText('Este é um PDF de demonstração.', {
+    x: 50,
+    y: 720,
+    size: 12,
+    color: rgb(0.5, 0.5, 0.5),
+  })
+
+  page.drawText('A renderização completa com fotos será implementada em breve.', {
+    x: 50,
+    y: 700,
+    size: 12,
+    color: rgb(0.5, 0.5, 0.5),
+  })
+
+  return await pdfDoc.save()
 }
