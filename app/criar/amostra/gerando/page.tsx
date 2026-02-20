@@ -32,6 +32,24 @@ function GerandoInner() {
   const pollRef = useRef<NodeJS.Timeout | null>(null)
   const msgRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Trigger generation immediately
+  useEffect(() => {
+    if (!sessionId) return
+
+    fetch('/api/generation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, type: 'sample' })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          router.push(`/criar/amostra/preview?sessionId=${sessionId}`)
+        }
+      })
+      .catch(err => console.error('Generation failed:', err))
+  }, [sessionId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Rotate messages every 3s
   useEffect(() => {
     msgRef.current = setInterval(() => {

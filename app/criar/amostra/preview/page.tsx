@@ -7,6 +7,7 @@ import { SparkleIcon, AlbumIcon } from '@/components/icons'
 import { createClient } from '@/lib/supabase/client'
 import { PRINT_PRICING, DIGITAL_PRICE } from '@/lib/types'
 import type { AlbumSession, AlbumStyle } from '@/lib/types'
+import { STYLE_CONFIGS } from '@/lib/styles'
 
 // ─── Style gradients ──────────────────────────────────────────────────────────
 
@@ -109,6 +110,7 @@ function PreviewInner() {
   const sessionId = searchParams.get('sessionId')
 
   const [session, setSession] = useState<AlbumSession | null>(null)
+  const [albumStructure, setAlbumStructure] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(true)
   const [activePage, setActivePage] = useState(0)
   const [showRejectModal, setShowRejectModal] = useState(false)
@@ -118,24 +120,46 @@ function PreviewInner() {
     if (!sessionId) return
     const supabase = createClient()
 
-    supabase
-      .from('album_sessions')
-      .select('*')
-      .eq('id', sessionId)
-      .single()
-      .then(({ data }) => {
-        if (data) setSession(data as AlbumSession)
-        setLoading(false)
-      })
+    Promise.all([
+      supabase
+        .from('album_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single(),
+      supabase
+        .from('generation_jobs')
+        .select('result_url, status')
+        .eq('session_id', sessionId)
+        .eq('status', 'done')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    ]).then(([sessionRes, jobRes]) => {
+      if (sessionRes.data) setSession(sessionRes.data as AlbumSession)
+      if (jobRes.data?.result_url) {
+        try {
+          setAlbumStructure(JSON.parse(jobRes.data.result_url))
+        } catch {
+          // ignore parse errors
+        }
+      }
+      setLoading(false)
+    })
   }, [sessionId])
 
-  const style = session?.questionnaire?.style ?? 'romantic'
-  const pageCount = session?.questionnaire?.pageCount ?? 15
+  // Use real album structure data when available, fallback to session questionnaire
+  const style = (albumStructure?.style as AlbumStyle) ?? session?.questionnaire?.style ?? 'romantic'
+  const pageCount =
+    (albumStructure?.pageCount as number) ??
+    session?.questionnaire?.pageCount ??
+    15
   const purpose = session?.productType ?? 'print'
   const price =
     purpose === 'print'
       ? (PRINT_PRICING[pageCount] ?? PRINT_PRICING[15])
       : DIGITAL_PRICE
+
+  const styleLabel = STYLE_CONFIGS[style as AlbumStyle]?.label ?? STYLE_LABEL[style] ?? style
 
   async function handleReject() {
     setRejecting(true)
@@ -200,7 +224,7 @@ function PreviewInner() {
             Veja como vai ficar seu álbum
           </h1>
           <p className="text-sm text-[#2C1810]/50 mt-1">
-            Estilo {STYLE_LABEL[style] ?? style} · {pageCount} páginas
+            Estilo {styleLabel} · {pageCount} páginas
           </p>
         </motion.div>
 
@@ -249,7 +273,7 @@ function PreviewInner() {
             <div>
               <p className="text-xs text-[#2C1810]/40 uppercase tracking-wide">Álbum completo</p>
               <p className="font-serif text-[#2C1810] text-lg">
-                {pageCount} páginas · Estilo {STYLE_LABEL[style] ?? style}
+                {pageCount} páginas · Estilo {styleLabel}
               </p>
             </div>
             <div className="text-right">

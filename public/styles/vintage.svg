@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <rect width="300" height="300" fill="#F5EED8"/>
+  <!-- Bordas com efeito envelhecido -->
+  <rect x="5" y="5" width="290" height="290" fill="none" stroke="#8B6914" stroke-width="1.5" opacity="0.6"/>
+  <rect x="9" y="9" width="282" height="282" fill="none" stroke="#8B6914" stroke-width="0.4" opacity="0.3"/>
+  <rect x="13" y="13" width="274" height="274" fill="none" stroke="#8B6914" stroke-width="0.8" opacity="0.4"/>
+  <!-- Ornamentos nos cantos: losangos -->
+  <rect x="12" y="12" width="10" height="10" fill="#8B6914" opacity="0.3" transform="rotate(45 17 17)"/>
+  <rect x="278" y="12" width="10" height="10" fill="#8B6914" opacity="0.3" transform="rotate(45 283 17)"/>
+  <rect x="12" y="278" width="10" height="10" fill="#8B6914" opacity="0.3" transform="rotate(45 17 283)"/>
+  <rect x="278" y="278" width="10" height="10" fill="#8B6914" opacity="0.3" transform="rotate(45 283 283)"/>
+</svg>

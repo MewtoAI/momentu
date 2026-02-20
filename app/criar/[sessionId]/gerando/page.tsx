@@ -36,6 +36,24 @@ export default function GerandoPage() {
   const pollRef = useRef<NodeJS.Timeout | null>(null)
   const msgRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Trigger full generation immediately
+  useEffect(() => {
+    if (!sessionId) return
+
+    fetch('/api/generation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, type: 'full' })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          router.push(`/criar/${sessionId}/pronto`)
+        }
+      })
+      .catch(err => console.error('Generation failed:', err))
+  }, [sessionId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Fetch photo count from session for display
   useEffect(() => {
     if (!sessionId) return

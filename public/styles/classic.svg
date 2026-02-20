@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <rect width="300" height="300" fill="#FFFFFF"/>
+  <rect x="6" y="6" width="288" height="288" fill="none" stroke="#1A1A1A" stroke-width="1.2" opacity="0.8"/>
+  <rect x="10" y="10" width="280" height="280" fill="none" stroke="#1A1A1A" stroke-width="0.4" opacity="0.4"/>
+  <!-- Cantos geométricos -->
+  <path d="M6,25 L6,6 L25,6" fill="none" stroke="#1A1A1A" stroke-width="1.5" opacity="0.6"/>
+  <path d="M275,6 L294,6 L294,25" fill="none" stroke="#1A1A1A" stroke-width="1.5" opacity="0.6"/>
+  <path d="M6,275 L6,294 L25,294" fill="none" stroke="#1A1A1A" stroke-width="1.5" opacity="0.6"/>
+  <path d="M275,294 L294,294 L294,275" fill="none" stroke="#1A1A1A" stroke-width="1.5" opacity="0.6"/>
+</svg>
