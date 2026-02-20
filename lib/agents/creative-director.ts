@@ -28,11 +28,11 @@ export interface PageSlot {
 
 export interface TextOverlay {
   content: string
-  subContent?: string                                      // subtítulo/data
+  subContent?: string                   // subtítulo/data
   position: 'top' | 'center' | 'bottom'
-  color: '#ffffff' | '#1a1a1a' | '#f5f5f0'               // branco, preto, creme
-  background: 'none' | 'semi-dark' | 'semi-light'        // overlay de fundo para garantir contraste
+  color: string                         // harmoniza com o fundo DALL-E. Ex: "#4a3728", "#2c2c2c", "#7a6250"
   fontSize: 'large' | 'medium' | 'small'
+  // ⛔ NUNCA há background/overlay. Texto flutua limpo sobre o fundo natural do layout.
 }
 
 export interface AlbumPage {
@@ -101,22 +101,35 @@ REGRAS DE NARRATIVA (seguir obrigatoriamente):
 7. O desfecho deve ser íntimo e emotivo — não termine com festa ou grupo grande
 
 TIPOS DE CAPA (escolha baseado nas fotos disponíveis):
-- "cover_photo": Foto do usuário ocupa quase toda a capa, título sobre a foto. Use quando há uma foto excelente e representativa. Foto no slot {"x":0, "y":0, "w":1, "h":1, "ratio":"auto"}
-- "cover_elegant": Fundo DALL-E belíssimo ocupa tudo + foto pequena decorativa (30% da largura) centralizada + título destacado. Slots: [{"x":0.35, "y":0.25, "w":0.3, "h":0.4, "ratio":"portrait", "cropFocus":"center"}]. Use quando nenhuma foto é perfeita para capa ou quando o estilo é elegante/minimal
-- "cover_minimal": Apenas fundo DALL-E + título + subtítulo. Sem foto do usuário. Slots: []. Use quando o usuário quer uma apresentação elegante ou quando as fotos são melhores guardadas para o interior
+- "cover_photo": Foto do usuário ocupa toda a capa — SEM texto, puro visual. A foto fala por si. Use para fotos de qualidade "excellent". Slots: [{"x":0, "y":0, "w":1, "h":1, "ratio":"auto"}]. textOverlay: omitir (não incluir no JSON).
+- "cover_elegant": Fundo DALL-E lindo domina + foto pequena centralizada como detalhe + título elegante sobre o fundo. Slots: [{"x":0.35, "y":0.22, "w":0.3, "h":0.42, "ratio":"portrait", "cropFocus":"center"}]. textOverlay com position "bottom" sobre o fundo.
+- "cover_minimal": Apenas fundo DALL-E + título + data. Pura tipografia sobre o fundo gerado. Slots: []. textOverlay obrigatório, position "center".
 
 QUANDO usar cada tipo:
-- cover_photo: fotos de qualidade "excellent" disponíveis, ocasião wedding/baby/graduation
-- cover_elegant: nenhuma foto ideal para capa, estilo classic/minimal/vintage
-- cover_minimal: usuário quer abertura forte com apenas texto, ou quando a primeira foto interior será o impacto
+- cover_photo: foto de qualidade excellent, impacto visual total, casamento/bebê/formatura
+- cover_elegant: foto disponível mas não perfeita para capa inteira, estilo romantic/vintage/bohemian
+- cover_minimal: estilo classic/minimal, ou quando o Diretor quer que a primeira foto interior seja o impacto
 
-REGRAS DE CONTRASTE DE TEXTO (CRÍTICO — seguir sempre):
-- Analise o "Brilho" de cada foto antes de definir textOverlay
-- Foto com brilho "light" (vestido branco, céu, praia) → color: "#1a1a1a" (escuro), background: "semi-light" se necessário
-- Foto com brilho "dark" (noite, fundo escuro) → color: "#ffffff" (branco), background: "none"
-- Foto com brilho "mixed" → color: "#ffffff", background: "semi-dark" (overlay escuro semi-transparente para garantir leitura)
-- Para cover_minimal ou cover_elegant (fundo DALL-E sem foto): color: "#1a1a1a", background: "none"
-- NUNCA texto branco sobre foto clara. NUNCA texto escuro sobre foto escura. Sem contraste = texto invisível.
+REGRAS DE TEXTO — SOFISTICAÇÃO MÁXIMA (SEGUIR OBRIGATORIAMENTE):
+⛔ PROIBIDO ABSOLUTAMENTE: faixa, band, overlay escuro/claro, retângulo semi-transparente por trás do texto. Isso é design barato de anos 2010.
+⛔ PROIBIDO: texto sobre foto do usuário. Texto NÃO vai sobre as fotos do usuário. Nunca.
+
+✅ TEXTO APENAS nas áreas de fundo DALL-E visível:
+- Em "landscape_single": texto vai no espaço acima ou abaixo da foto (posição top ou bottom), onde só o fundo aparece
+- Em "portrait_single": texto vai na faixa inferior pequena, abaixo do slot, sobre o fundo
+- Em "cover_elegant" e "cover_minimal": texto fica no centro da página sobre o fundo lindo
+- Em "cover_photo": textOverlay é OPCIONAL — só adicione se a foto tiver area natural limpa onde o fundo ainda aparece nas bordas. Se a foto domina tudo, deixe sem texto na capa — a elegância é o visual da foto sem perturbação.
+- Em "double_portrait" e "double_landscape": caption vai embaixo, na pequena faixa do fundo
+
+✅ Cor do texto harmoniza com o fundo DALL-E gerado:
+- Estilo romantic (rose/cream): color "#7a5c4a" (marrom rosado quente)
+- Estilo classic (white/gold): color "#2c2c2c" (preto suave)
+- Estilo vintage (sepia): color "#5c4030" (marrom vintage)
+- Estilo minimal (white/gray): color "#3a3a3a" (cinza escuro elegante)
+- Estilo vibrant: color "#2c2c2c"
+- Estilo bohemian (terracotta): color "#4a3020" (marrom quente)
+
+✅ Tipografia discreta: fontSize "small" ou "medium" para captions. "large" só para título principal na capa de cover_elegant/cover_minimal.
 
 REGRAS DE CROP INTELIGENTE (faceArea → cropFocus):
 - Para cada slot com pessoas, defina cropFocus baseado no faceArea da foto:
@@ -169,8 +182,7 @@ RETORNE SOMENTE JSON VÁLIDO (sem markdown, sem explicação):
         "content": "Sarah & João",
         "subContent": "17 de dezembro de 2025",
         "position": "bottom",
-        "color": "#ffffff",
-        "background": "semi-dark",
+        "color": "#7a5c4a",
         "fontSize": "large"
       },
       "mood": "string",

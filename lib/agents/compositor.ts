@@ -35,9 +35,9 @@ export interface TextOverlay {
   content: string
   subContent?: string
   position: 'top' | 'center' | 'bottom'
-  color: string                                    // ex: "#ffffff" ou "#1a1a1a"
-  background: 'none' | 'semi-dark' | 'semi-light' // overlay para garantir contraste
+  color: string        // ex: "#4a3728" (tom do fundo) — nunca branco sobre foto
   fontSize: 'large' | 'medium' | 'small'
+  // NOTA: NUNCA há background/overlay sobre foto. Texto só vai em área de fundo natural.
 }
 
 export interface PageComposition {
@@ -122,21 +122,26 @@ async function fitPhotoToSlot(
 }
 
 /**
- * Cria um SVG com texto e contraste garantido pelo Diretor
+ * Cria SVG de texto limpo e sofisticado — SEM backgrounds, SEM overlays, SEM faixas.
+ * Texto flutua sobre a área de fundo natural do layout.
+ * Cor escolhida pelo Diretor para harmonizar com o fundo DALL-E.
  */
 function createTextSVG(overlay: TextOverlay): string {
-  const { content, subContent, position, color, background, fontSize: fontSizeKey } = overlay
+  const { content, subContent, position, color, fontSize: fontSizeKey } = overlay
 
-  const mainSize  = fontSizeKey === 'large' ? 110 : fontSizeKey === 'medium' ? 76 : 56
-  const subSize   = Math.round(mainSize * 0.45)
+  const mainSize   = fontSizeKey === 'large' ? 108 : fontSizeKey === 'medium' ? 72 : 52
+  const subSize    = Math.round(mainSize * 0.42)
+  const letterSpacing = fontSizeKey === 'large' ? 8 : 4  // tracking elegante
   const fontFamily = 'Georgia, serif'
 
-  // Calcular área de texto (faixa horizontal)
-  const bandHeight = position === 'center' ? PAGE_HEIGHT : Math.round(PAGE_HEIGHT * 0.22)
-  let bandY = 0
-  if (position === 'center') bandY = 0
-  if (position === 'bottom')  bandY = PAGE_HEIGHT - bandHeight
-  if (position === 'top')     bandY = 0
+  // Posição vertical do bloco de texto
+  // "bottom" = zona inferior do fundo (abaixo das fotos)
+  // "top"    = zona superior do fundo (acima das fotos)
+  // "center" = centro da página (para cover_minimal/elegant com fundo dominante)
+  let anchorY: number
+  if (position === 'top')    anchorY = Math.round(PAGE_HEIGHT * 0.12)
+  else if (position === 'center') anchorY = Math.round(PAGE_HEIGHT * 0.50)
+  else                       anchorY = Math.round(PAGE_HEIGHT * 0.90)
 
   // Quebrar texto em linhas
   const words = content.split(' ')
@@ -146,28 +151,19 @@ function createTextSVG(overlay: TextOverlay): string {
     lines.push(words.slice(i, i + maxWordsPerLine).join(' '))
   }
 
-  const lineHeight  = mainSize * 1.35
-  const blockHeight = lines.length * lineHeight + (subContent ? subSize * 2 : 0)
-  const blockStartY = bandY + (bandHeight - blockHeight) / 2 + mainSize
+  const lineH = mainSize * 1.4
+  const totalH = lines.length * lineH + (subContent ? subSize * 2.2 : 0)
+  const startY = anchorY - totalH / 2 + mainSize
 
   const mainLines = lines.map((line, i) =>
-    `<text x="${PAGE_WIDTH / 2}" y="${Math.round(blockStartY + i * lineHeight)}" font-size="${mainSize}" font-family="${fontFamily}" font-weight="bold" fill="${color}" text-anchor="middle">${escapeXml(line)}</text>`
+    `<text x="${PAGE_WIDTH / 2}" y="${Math.round(startY + i * lineH)}" font-size="${mainSize}" font-family="${fontFamily}" font-weight="bold" fill="${color}" text-anchor="middle" letter-spacing="${letterSpacing}">${escapeXml(line)}</text>`
   ).join('\n')
 
   const subLine = subContent
-    ? `<text x="${PAGE_WIDTH / 2}" y="${Math.round(blockStartY + lines.length * lineHeight + subSize)}" font-size="${subSize}" font-family="${fontFamily}" font-weight="normal" fill="${color}" text-anchor="middle" opacity="0.85">${escapeXml(subContent)}</text>`
+    ? `<text x="${PAGE_WIDTH / 2}" y="${Math.round(startY + lines.length * lineH + subSize)}" font-size="${subSize}" font-family="${fontFamily}" font-weight="normal" fill="${color}" text-anchor="middle" opacity="0.75" letter-spacing="${Math.round(letterSpacing * 1.5)}">${escapeXml(subContent)}</text>`
     : ''
 
-  // Background overlay para garantir contraste
-  let bgRect = ''
-  if (background === 'semi-dark') {
-    bgRect = `<rect x="0" y="${bandY}" width="${PAGE_WIDTH}" height="${bandHeight}" fill="rgba(0,0,0,0.45)"/>`
-  } else if (background === 'semi-light') {
-    bgRect = `<rect x="0" y="${bandY}" width="${PAGE_WIDTH}" height="${bandHeight}" fill="rgba(255,255,255,0.55)"/>`
-  }
-
   return `<svg width="${PAGE_WIDTH}" height="${PAGE_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  ${bgRect}
   ${mainLines}
   ${subLine}
 </svg>`
