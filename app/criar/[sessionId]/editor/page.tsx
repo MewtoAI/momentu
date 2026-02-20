@@ -36,6 +36,6 @@ const KonvaEditor = dynamic(
   }
 )
 
-export default function EditorPage({ params }: { params: { templateId: string } }) {
-  return <KonvaEditor templateId={params.templateId} />
+export default function EditorPage({ params }: { params: { sessionId: string } }) {
+  return <KonvaEditor templateId={params.sessionId} />
 }

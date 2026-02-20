@@ -114,7 +114,7 @@ export default function PreviewPage({ params }: { params: { albumId: string } })
         }}
       >
         <Link
-          href={`/criar/${album.templateId}`}
+          href={`/criar/${album.templateId}/editor`}
           style={{ fontSize: 14, color: "#5C5670", textDecoration: "none", fontWeight: 500 }}
         >
           ← Voltar ao editor
