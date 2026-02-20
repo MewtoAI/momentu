@@ -87,6 +87,20 @@ export default function GalleryDetailPage() {
       .single()
       .then(({ data, error }) => {
         if (data && !error) {
+          // preview_pages pode ser array de URLs (string) ou array de objetos estruturados
+          const rawPages = data.preview_pages || []
+          const normalizedPages: PreviewPage[] = rawPages.map((p: unknown) => {
+            if (typeof p === 'string') {
+              // URL direta — montar como página com foto única ocupando tela toda
+              return {
+                photos: [{ url: p, x: 0.05, y: 0.05, width: 0.9, height: 0.75 }],
+                texts: [],
+                caption: undefined,
+              }
+            }
+            return p as PreviewPage
+          })
+
           setAlbum({
             id: data.id,
             title: data.title,
@@ -94,7 +108,7 @@ export default function GalleryDetailPage() {
             occasion: data.occasion,
             productType: data.product_type,
             thumbnailUrl: data.thumbnail_url,
-            previewPages: data.preview_pages || [],
+            previewPages: normalizedPages,
             albumStructure: data.album_structure || null,
           })
         }

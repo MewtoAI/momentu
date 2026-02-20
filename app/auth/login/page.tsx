@@ -14,7 +14,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
-  const returnUrl = searchParams.get('returnUrl') || '/criar/amostra'
+  const returnUrl = searchParams.get('returnUrl') || '/criar'
   const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
