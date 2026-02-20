@@ -49,47 +49,46 @@ const STYLE_GRADIENT: Record<string, string> = {
 
 function GalleryCard({ album }: { album: GalleryAlbum }) {
   return (
-    <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-[#2C1810]/5">
-      {/* Thumbnail */}
-      <div className={`aspect-square bg-gradient-to-br ${STYLE_GRADIENT[album.style]} relative overflow-hidden`}>
-        {album.thumbnailUrl ? (
-          <Image
-            src={album.thumbnailUrl}
-            alt={album.title}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
-            sizes="(max-width: 768px) 50vw, 33vw"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center opacity-20">
-            <SparkleIcon size={48} color="#C9607A" />
-          </div>
-        )}
-        {album.isFeatured && (
-          <div className="absolute top-2 right-2 bg-[#C9A84C] text-white text-[10px] px-2 py-0.5 rounded-full font-medium shadow-sm">
-            Destaque
-          </div>
-        )}
-        {/* Overlay gradient on hover */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      </div>
+    <Link href={`/galeria/${album.id}`}>
+      <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-[#2C1810]/5 cursor-pointer">
+        {/* Thumbnail */}
+        <div className={`aspect-square bg-gradient-to-br ${STYLE_GRADIENT[album.style]} relative overflow-hidden`}>
+          {album.thumbnailUrl ? (
+            <Image
+              src={album.thumbnailUrl}
+              alt={album.title}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              sizes="(max-width: 768px) 50vw, 33vw"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center opacity-20">
+              <SparkleIcon size={48} color="#C9607A" />
+            </div>
+          )}
+          {album.isFeatured && (
+            <div className="absolute top-2 right-2 bg-[#C9A84C] text-white text-[10px] px-2 py-0.5 rounded-full font-medium shadow-sm">
+              Destaque
+            </div>
+          )}
+          {/* Overlay gradient on hover */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        </div>
 
-      {/* Info */}
-      <div className="p-3">
-        <p className="font-serif text-sm text-[#2C1810] mb-1 line-clamp-1">{album.title}</p>
-        <div className="flex items-center justify-between">
-          <span className={`text-[10px] px-2 py-0.5 rounded-full ${STYLE_COLORS[album.style]}`}>
-            {STYLE_LABELS[album.style]}
-          </span>
-          <Link
-            href={`/criar?ref=${album.id}`}
-            className="text-[#C9607A] text-xs font-medium hover:underline"
-          >
-            Quero assim →
-          </Link>
+        {/* Info */}
+        <div className="p-3">
+          <p className="font-serif text-sm text-[#2C1810] mb-1 line-clamp-1">{album.title}</p>
+          <div className="flex items-center justify-between">
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${STYLE_COLORS[album.style]}`}>
+              {STYLE_LABELS[album.style]}
+            </span>
+            <span className="text-[#C9607A] text-xs font-medium group-hover:underline">
+              Ver álbum →
+            </span>
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
 

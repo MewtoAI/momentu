@@ -3,11 +3,135 @@ import { createClient } from '@supabase/supabase-js'
 import { planAlbum, PhotoMeta } from '@/lib/agents/curator'
 import { STYLE_CONFIGS, getStyleLayouts } from '@/lib/styles'
 import { AlbumStyle } from '@/lib/types'
+import OpenAI from 'openai'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+})
+
+interface AIAlbumPlan {
+  pages: Array<{
+    index: number
+    layoutType: 'cover' | 'single' | 'double' | 'triple' | 'text_focus' | 'back_cover'
+    photos: Array<{ id: string; url: string }>
+    title?: string
+    caption?: string
+    mood?: string
+  }>
+  albumTitle: string
+  overallNarrative?: string
+}
+
+async function planAlbumWithAI(
+  photos: PhotoMeta[],
+  questionnaire: any,
+  pageCount: number,
+  isSample: boolean
+): Promise<AIAlbumPlan | null> {
+  try {
+    const occasion = questionnaire.occasion || 'memories'
+    const style = questionnaire.style || 'romantic'
+    const specialMessage = questionnaire.specialMessage || ''
+    const names = questionnaire.names || ''
+    const productType = questionnaire.productType || 'print'
+
+    const photoDescriptions = photos.map((p, i) => ({
+      id: p.id,
+      url: p.url,
+      isPortrait: p.isPortrait,
+      index: i
+    }))
+
+    const prompt = `You are a professional photo album designer. You will receive information about a user's photos and create an album layout plan.
+
+User's questionnaire:
+- Occasion: ${occasion}
+- Style: ${style}
+- Special message: ${specialMessage}
+- Names: ${names}
+- Product type: ${productType}
+
+Available photos (${photos.length} total):
+${JSON.stringify(photoDescriptions, null, 2)}
+
+Create a ${pageCount}-page album. ${isSample ? 'This is a 2-page SAMPLE (cover + 1 page) to preview before purchase.' : 'This is the full album.'}
+
+Rules:
+1. First page is always the cover (layoutType: "cover") with the best/most representative photo
+2. Mix layouts creatively based on photo orientations
+3. Generate meaningful captions in Portuguese (pt-BR) based on the occasion and style
+4. For wedding: romantic, emotional captions. For travel: adventurous. For baby: tender.
+5. Landscape photos work best as "single". Portrait photos can be "double" or "triple".
+6. Every 4-5 pages, include a "text_focus" page with a quote or message.
+7. Last page is "back_cover" (only for full albums, not sample).
+8. For sample (2 pages): just cover + 1 interior page with best photos.
+9. Choose photos that tell a story — chronological or emotional flow.
+10. Use different photos on each page — don't repeat.
+
+Return ONLY valid JSON matching this schema:
+{
+  "pages": [
+    {
+      "index": 0,
+      "layoutType": "cover",
+      "photos": [{"id": "...", "url": "..."}],
+      "title": "Album title",
+      "caption": "Subtitle or date",
+      "mood": "romantic/adventurous/tender/etc"
+    }
+  ],
+  "albumTitle": "Main album title",
+  "overallNarrative": "Brief description of the album story"
+}
+
+Available layoutTypes: cover, single, double, triple, text_focus, back_cover
+
+Return ONLY the JSON. No markdown, no explanation, no \`\`\`json blocks.`
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional photo album designer AI. You respond ONLY with valid JSON, no markdown.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.8,
+      max_tokens: 2000,
+    })
+
+    const responseText = completion.choices[0].message.content?.trim() || ''
+    
+    // Remove markdown code blocks if present
+    let jsonText = responseText
+    if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```json?\n?/, '').replace(/\n?```$/, '')
+    }
+
+    const aiPlan: AIAlbumPlan = JSON.parse(jsonText)
+    
+    // Validate the response has required structure
+    if (!aiPlan.pages || !Array.isArray(aiPlan.pages) || aiPlan.pages.length === 0) {
+      console.error('Invalid AI response structure:', aiPlan)
+      return null
+    }
+
+    return aiPlan
+
+  } catch (error) {
+    console.error('AI planning error:', error)
+    return null
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,19 +184,35 @@ export async function POST(req: NextRequest) {
       return {
         id: file.id || String(i),
         url: urlData.publicUrl,
-        width: 1000,   // Default — idealmente lemos dos metadados
-        height: 1500,  // Assume portrait por padrão (safe default)
+        width: 1000,
+        height: 1500,
         isPortrait: true
       }
     })
 
-    // 5. Rodar curator para planejar o álbum
     const questionnaire = session.questionnaire || {}
     const style = (questionnaire.style || 'romantic') as AlbumStyle
     const pageCount = type === 'sample' ? 2 : (session.page_count || 10)
-    const groupings = session.groupings || []
+    const isSample = type === 'sample'
 
-    const pagePlan = planAlbum(photoMetas, questionnaire, groupings, pageCount)
+    // 5. Tentar AI primeiro, fallback para curator
+    let pagePlan
+    const aiPlan = await planAlbumWithAI(photoMetas, questionnaire, pageCount, isSample)
+    
+    if (aiPlan) {
+      // Converter AI plan para formato do curator
+      pagePlan = aiPlan.pages.map(page => ({
+        index: page.index,
+        layoutType: page.layoutType,
+        photos: page.photos.map(p => photoMetas.find(pm => pm.id === p.id) || photoMetas[0]),
+        textHints: [page.caption || page.title || ''].filter(Boolean)
+      }))
+    } else {
+      // Fallback: usar curator tradicional
+      console.warn('AI planning failed, falling back to curator')
+      const groupings = session.groupings || []
+      pagePlan = planAlbum(photoMetas, questionnaire, groupings, pageCount)
+    }
 
     // 6. Montar estrutura de resposta para o frontend renderizar
     const styleConfig = STYLE_CONFIGS[style]
@@ -100,7 +240,8 @@ export async function POST(req: NextRequest) {
         }
       }),
       format: session.format || 'print_20x20',
-      pageCount
+      pageCount,
+      aiGenerated: aiPlan !== null
     }
 
     // 7. Atualizar job como concluído
