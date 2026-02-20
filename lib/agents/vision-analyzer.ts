@@ -29,6 +29,8 @@ export interface PhotoAnalysis {
   type: 'key_moment' | 'contextual' | 'portrait' | 'detail' | 'landscape_scene'
   quality: 'excellent' | 'good' | 'usable'
   suggestedSlot: 'portrait' | 'landscape' | 'square'
+  brightness: 'light' | 'dark' | 'mixed'    // para decisão de contraste do texto
+  faceArea: 'upper' | 'center' | 'lower' | 'none'  // onde estão os rostos — para crop inteligente
 }
 
 export interface AnalyzedPhoto extends PhotoInput {
@@ -36,7 +38,7 @@ export interface AnalyzedPhoto extends PhotoInput {
   analysis: PhotoAnalysis
 }
 
-const VISION_PROMPT = `Analise esta foto para um álbum de memórias.
+const VISION_PROMPT = `Analise esta foto para um álbum de memórias impresso.
 
 Responda APENAS com JSON válido neste formato exato:
 {
@@ -44,7 +46,9 @@ Responda APENAS com JSON válido neste formato exato:
   "emotion": "sentimento predominante que a foto evoca",
   "type": "key_moment" | "contextual" | "portrait" | "detail" | "landscape_scene",
   "quality": "excellent" | "good" | "usable",
-  "suggestedSlot": "portrait" | "landscape" | "square"
+  "suggestedSlot": "portrait" | "landscape" | "square",
+  "brightness": "light" | "dark" | "mixed",
+  "faceArea": "upper" | "center" | "lower" | "none"
 }
 
 Critérios:
@@ -58,9 +62,18 @@ Critérios:
   * landscape_scene = paisagem ampla, cenário
 - quality: avalie nitidez, composição, iluminação
 - suggestedSlot: baseado na composição, qual formato funciona melhor
-  * portrait = 2:3 ou 3:4 (vertical)
-  * landscape = 3:2 ou 4:3 (horizontal)
-  * square = 1:1 (quadrado ou funciona bem cortado)
+  * portrait = vertical (2:3 ou 3:4)
+  * landscape = horizontal (3:2 ou 4:3)
+  * square = 1:1 (ou funciona bem cortado quadrado)
+- brightness: tom geral da foto
+  * light = foto clara (vestido branco, céu, praia, interior iluminado)
+  * dark = foto escura (noite, ambiente escuro, sombras dominantes)
+  * mixed = misto de claro e escuro
+- faceArea: onde os rostos das pessoas estão na foto (para evitar crop ruim)
+  * upper = rostos no terço superior
+  * center = rostos no centro
+  * lower = rostos no terço inferior
+  * none = sem pessoas / rostos não visíveis
 
 Responda APENAS com o JSON, sem markdown, sem explicações.`
 
@@ -163,7 +176,9 @@ export async function analyzePhotos(photos: PhotoInput[]): Promise<AnalyzedPhoto
         emotion: 'memória preciosa',
         type: 'contextual',
         quality: 'good',
-        suggestedSlot: isPortrait ? 'portrait' : (photo.width === photo.height ? 'square' : 'landscape')
+        suggestedSlot: isPortrait ? 'portrait' : (photo.width === photo.height ? 'square' : 'landscape'),
+        brightness: 'mixed',
+        faceArea: 'center'
       }
     })
   }

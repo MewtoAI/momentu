@@ -23,18 +23,26 @@ export interface PageSlot {
   w: number
   h: number
   ratio: 'portrait' | 'landscape' | 'square' | 'auto'
+  cropFocus?: 'top' | 'center' | 'bottom' | 'attention'  // onde focar no crop
+}
+
+export interface TextOverlay {
+  content: string
+  subContent?: string                                      // subtítulo/data
+  position: 'top' | 'center' | 'bottom'
+  color: '#ffffff' | '#1a1a1a' | '#f5f5f0'               // branco, preto, creme
+  background: 'none' | 'semi-dark' | 'semi-light'        // overlay de fundo para garantir contraste
+  fontSize: 'large' | 'medium' | 'small'
 }
 
 export interface AlbumPage {
   index: number
-  layoutType: 'cover' | 'full_bleed' | 'portrait_single' | 'landscape_single' | 'double_portrait' | 'double_landscape' | 'triple' | 'text_focus'
+  layoutType: 'cover_photo' | 'cover_elegant' | 'cover_minimal' | 'full_bleed' | 'portrait_single' | 'landscape_single' | 'double_portrait' | 'double_landscape' | 'triple' | 'text_focus'
   photoIds: string[]
   slots: PageSlot[]
-  title?: string        // só para capa
-  subtitle?: string     // só para capa
-  caption?: string      // para páginas interiores
+  textOverlay?: TextOverlay   // texto com contraste garantido
   mood: string
-  bgPrompt: string      // prompt para DALL-E gerar o fundo
+  bgPrompt: string            // prompt para DALL-E gerar o fundo
 }
 
 export interface AlbumStoryboard {
@@ -64,7 +72,7 @@ function buildDirectorPrompt(input: DirectorInput): string {
   const { occasion, style, names, specialMessage, period } = questionnaire
 
   const photoSummary = photos.map(p => 
-    `ID: ${p.id} | Orientação: ${p.analysis.suggestedSlot} | Conteúdo: ${p.analysis.content} | Emoção: ${p.analysis.emotion} | Tipo: ${p.analysis.type} | Qualidade: ${p.analysis.quality}`
+    `ID: ${p.id} | Orientação: ${p.analysis.suggestedSlot} | Brilho: ${p.analysis.brightness} | Rostos: ${p.analysis.faceArea} | Conteúdo: ${p.analysis.content} | Emoção: ${p.analysis.emotion} | Tipo: ${p.analysis.type} | Qualidade: ${p.analysis.quality}`
   ).join('\n')
 
   return `Você é um diretor criativo sênior especializado em álbuns de fotos de memórias.
@@ -85,40 +93,67 @@ ${photoSummary}
 
 REGRAS DE NARRATIVA (seguir obrigatoriamente):
 1. O álbum conta uma HISTÓRIA com arco narrativo: abertura impactante → desenvolvimento → clímax emocional → desfecho íntimo
-2. A CAPA deve usar a foto mais impactante e representativa. Nunca use foto de baixa qualidade na capa.
+2. A CAPA deve ser impactante. Use o tipo de capa certo para as fotos disponíveis (ver TIPOS DE CAPA abaixo).
 3. Alterne ritmos: página de foto grande → duas fotos menores → página de texto → volta para foto grande
 4. NUNCA coloque duas fotos de tipo idêntico lado a lado (dois retratos de expressão similar)
-5. Prefira fotos portrait em slots portrait, landscape em slots landscape. Especifique o aspect_ratio de cada slot.
+5. Prefira fotos portrait em slots portrait, landscape em slots landscape
 6. A cada 4-5 páginas, inclua uma página de texto/citação para dar respiração visual
 7. O desfecho deve ser íntimo e emotivo — não termine com festa ou grupo grande
 
-REGRAS DE LAYOUT:
-- "full_bleed": 1 foto ocupando a página inteira. Slots: [{"x":0, "y":0, "w":1, "h":0.85, "ratio":"auto"}]
-- "portrait_single": 1 foto retrato centralizada com margens. Slots: [{"x":0.1, "y":0.05, "w":0.8, "h":0.82, "ratio":"portrait"}]
-- "landscape_single": 1 foto landscape centralizada. Slots: [{"x":0.05, "y":0.15, "w":0.9, "h":0.65, "ratio":"landscape"}]
-- "double_portrait": 2 fotos retrato lado a lado. Slots: [{"x":0.03, "y":0.08, "w":0.45, "h":0.78, "ratio":"portrait"}, {"x":0.52, "y":0.08, "w":0.45, "h":0.78, "ratio":"portrait"}]
-- "double_landscape": 2 fotos landscape empilhadas. Slots: [{"x":0.05, "y":0.04, "w":0.9, "h":0.44, "ratio":"landscape"}, {"x":0.05, "y":0.52, "w":0.9, "h":0.44, "ratio":"landscape"}]
-- "triple": 3 fotos — 1 grande + 2 pequenas. Slots: [{"x":0.03, "y":0.05, "w":0.55, "h":0.88, "ratio":"portrait"}, {"x":0.61, "y":0.05, "w":0.36, "h":0.42, "ratio":"portrait"}, {"x":0.61, "y":0.51, "w":0.36, "h":0.42, "ratio":"portrait"}]
-- "text_focus": Página de texto/citação sem foto principal. Slots: []
-- "cover": Capa com foto e título. Slots: [{"x":0, "y":0, "w":1, "h":1, "ratio":"auto"}]
+TIPOS DE CAPA (escolha baseado nas fotos disponíveis):
+- "cover_photo": Foto do usuário ocupa quase toda a capa, título sobre a foto. Use quando há uma foto excelente e representativa. Foto no slot {"x":0, "y":0, "w":1, "h":1, "ratio":"auto"}
+- "cover_elegant": Fundo DALL-E belíssimo ocupa tudo + foto pequena decorativa (30% da largura) centralizada + título destacado. Slots: [{"x":0.35, "y":0.25, "w":0.3, "h":0.4, "ratio":"portrait", "cropFocus":"center"}]. Use quando nenhuma foto é perfeita para capa ou quando o estilo é elegante/minimal
+- "cover_minimal": Apenas fundo DALL-E + título + subtítulo. Sem foto do usuário. Slots: []. Use quando o usuário quer uma apresentação elegante ou quando as fotos são melhores guardadas para o interior
+
+QUANDO usar cada tipo:
+- cover_photo: fotos de qualidade "excellent" disponíveis, ocasião wedding/baby/graduation
+- cover_elegant: nenhuma foto ideal para capa, estilo classic/minimal/vintage
+- cover_minimal: usuário quer abertura forte com apenas texto, ou quando a primeira foto interior será o impacto
+
+REGRAS DE CONTRASTE DE TEXTO (CRÍTICO — seguir sempre):
+- Analise o "Brilho" de cada foto antes de definir textOverlay
+- Foto com brilho "light" (vestido branco, céu, praia) → color: "#1a1a1a" (escuro), background: "semi-light" se necessário
+- Foto com brilho "dark" (noite, fundo escuro) → color: "#ffffff" (branco), background: "none"
+- Foto com brilho "mixed" → color: "#ffffff", background: "semi-dark" (overlay escuro semi-transparente para garantir leitura)
+- Para cover_minimal ou cover_elegant (fundo DALL-E sem foto): color: "#1a1a1a", background: "none"
+- NUNCA texto branco sobre foto clara. NUNCA texto escuro sobre foto escura. Sem contraste = texto invisível.
+
+REGRAS DE CROP INTELIGENTE (faceArea → cropFocus):
+- Para cada slot com pessoas, defina cropFocus baseado no faceArea da foto:
+  * faceArea "upper" → cropFocus: "top" (garante que a cabeça não seja cortada)
+  * faceArea "center" → cropFocus: "center"
+  * faceArea "lower" → cropFocus: "bottom"
+  * faceArea "none" → cropFocus: "attention" (crop automático por saliência visual)
+- NUNCA coloque uma foto com faceArea "upper" em um slot que forçaria crop do topo
+
+REGRAS DE LAYOUT (páginas interiores):
+- "full_bleed": 1 foto borda a borda, fundo quase invisível. Slots: [{"x":0, "y":0, "w":1, "h":0.85, "ratio":"auto", "cropFocus":"center"}]
+- "portrait_single": 1 foto retrato com margens generosas, fundo à mostra. Slots: [{"x":0.1, "y":0.06, "w":0.8, "h":0.78, "ratio":"portrait", "cropFocus":"center"}]
+- "landscape_single": 1 foto landscape centralizada, fundo à mostra acima/abaixo. Slots: [{"x":0.05, "y":0.18, "w":0.9, "h":0.6, "ratio":"landscape", "cropFocus":"center"}]
+- "double_portrait": 2 fotos retrato lado a lado, espaço entre elas. Slots: [{"x":0.03, "y":0.08, "w":0.45, "h":0.75, "ratio":"portrait", "cropFocus":"center"}, {"x":0.52, "y":0.08, "w":0.45, "h":0.75, "ratio":"portrait", "cropFocus":"center"}]
+- "double_landscape": 2 fotos landscape empilhadas. Slots: [{"x":0.05, "y":0.05, "w":0.9, "h":0.42, "ratio":"landscape", "cropFocus":"center"}, {"x":0.05, "y":0.53, "w":0.9, "h":0.42, "ratio":"landscape", "cropFocus":"center"}]
+- "triple": 1 foto grande + 2 pequenas. Slots: [{"x":0.03, "y":0.05, "w":0.55, "h":0.88, "ratio":"portrait", "cropFocus":"center"}, {"x":0.61, "y":0.05, "w":0.36, "h":0.42, "ratio":"portrait"}, {"x":0.61, "y":0.51, "w":0.36, "h":0.42, "ratio":"portrait"}]
+- "text_focus": Só texto, nenhuma foto. Slots: []
 
 REGRAS DO BG_PROMPT (para DALL-E gerar o fundo):
 - O fundo deve complementar as fotos, NUNCA competir com elas
-- Fundos devem ser SUTIS: texturas, gradientes suaves, elementos decorativos discretos
-- Para estilo "romantic": "soft watercolor floral background, pale rose and cream tones, delicate botanical elements, premium paper texture, no text, no people"
+- Fundos devem ser SUTIS: texturas, gradientes, elementos decorativos discretos
+- Para estilo "romantic": "soft watercolor floral background, pale rose and cream tones, delicate botanical elements, premium paper texture"
 - Para estilo "classic": "clean white background with subtle gold geometric border, premium quality, minimalist, elegant"
-- Para estilo "vintage": "aged paper texture, sepia tones, subtle vintage botanical illustrations in corners, no text"
+- Para estilo "vintage": "aged paper texture, sepia tones, subtle vintage botanical illustrations in corners"
 - Para estilo "vibrant": "soft colorful gradient background, warm tones, subtle bokeh effect, premium"
 - Para estilo "minimal": "pure white background, very subtle light gray geometric lines, ultra minimalist"
 - Para estilo "bohemian": "warm terracotta and sage green tones, subtle hand-drawn botanical elements, organic texture"
 - SEMPRE terminar bg_prompt com: ", no faces, no people, no text, seamless pattern for photo album"
+- Para cover_elegant e cover_minimal: bgPrompt deve ser especialmente bonito — é o elemento visual principal da capa
 
-IMPORTANTE — texto/captions:
-- Captions devem ser emocionais, específicas e únicas (não genéricas como "Dia especial")
-- Use os nomes fornecidos nas captions
-- Captions em português brasileiro
-- Máximo 15 palavras por caption
-- Para casamento: captions que fazem chorar (bom senso de emoção)
+REGRAS DE TEXTO (textOverlay):
+- Sempre defina textOverlay para pages que têm texto (capa, captions)
+- content: título do álbum na capa, ou caption emocional nas páginas interiores
+- subContent: data/subtítulo apenas na capa
+- Captions devem ser emocionais, específicas (não genéricas como "Dia especial")
+- Use os nomes fornecidos. Máximo 15 palavras. Em português brasileiro.
+- Para casamento: captions que emocionam
 
 RETORNE SOMENTE JSON VÁLIDO (sem markdown, sem explicação):
 {
@@ -127,12 +162,17 @@ RETORNE SOMENTE JSON VÁLIDO (sem markdown, sem explicação):
   "pages": [
     {
       "index": 0,
-      "layoutType": "cover",
+      "layoutType": "cover_photo",
       "photoIds": ["id_da_foto"],
-      "slots": [{"x": 0, "y": 0, "w": 1, "h": 1, "ratio": "auto"}],
-      "title": "string (só para capa)",
-      "subtitle": "string (só para capa, ex: '17 de dezembro de 2025')",
-      "caption": "string (para páginas interiores)",
+      "slots": [{"x": 0, "y": 0, "w": 1, "h": 1, "ratio": "auto", "cropFocus": "center"}],
+      "textOverlay": {
+        "content": "Sarah & João",
+        "subContent": "17 de dezembro de 2025",
+        "position": "bottom",
+        "color": "#ffffff",
+        "background": "semi-dark",
+        "fontSize": "large"
+      },
       "mood": "string",
       "bgPrompt": "string (prompt para DALL-E gerar o fundo)"
     }

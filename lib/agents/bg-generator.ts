@@ -41,17 +41,30 @@ export interface GeneratedBackground {
   localPath?: string
 }
 
+// Prompts padrão por estilo — usados quando o Diretor não especifica bgPrompt
+const DEFAULT_BG_PROMPTS: Record<string, string> = {
+  romantic: 'soft watercolor floral background, pale rose and cream tones, delicate botanical elements, premium paper texture, no faces, no people, no text, seamless pattern for photo album',
+  classic: 'clean white background with subtle gold geometric border, premium quality, minimalist, elegant, no faces, no people, no text',
+  vintage: 'aged paper texture, sepia tones, subtle vintage botanical illustrations in corners, no text, no faces, no people',
+  vibrant: 'soft colorful gradient background, warm tones, subtle bokeh effect, premium, no faces, no people, no text',
+  minimal: 'pure white background, very subtle light gray geometric lines, ultra minimalist, no faces, no people, no text',
+  bohemian: 'warm terracotta and sage green tones, subtle hand-drawn botanical elements, organic texture, no faces, no people, no text',
+}
+
 /**
  * Gera um background com DALL-E 3 e salva no Supabase Storage
  */
 async function generateBackground(request: BackgroundRequest): Promise<GeneratedBackground | null> {
   try {
     console.log(`Generating background for page ${request.pageIndex}...`)
+
+    // Garantir que bgPrompt não seja vazio
+    const prompt = request.bgPrompt?.trim() || DEFAULT_BG_PROMPTS.romantic
     
     // Gerar imagem com DALL-E 3
     const response = await getOpenAI().images.generate({
       model: 'dall-e-3',
-      prompt: request.bgPrompt,
+      prompt,
       size: '1024x1024',
       quality: 'standard', // 'standard' é mais barato e suficiente para backgrounds
       style: 'natural',

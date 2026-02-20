@@ -28,6 +28,16 @@ export interface PhotoSlot {
   w: number        // Largura relativa (0-1)
   h: number        // Altura relativa (0-1)
   ratio: 'portrait' | 'landscape' | 'square' | 'auto'
+  cropFocus?: 'top' | 'center' | 'bottom' | 'attention'
+}
+
+export interface TextOverlay {
+  content: string
+  subContent?: string
+  position: 'top' | 'center' | 'bottom'
+  color: string                                    // ex: "#ffffff" ou "#1a1a1a"
+  background: 'none' | 'semi-dark' | 'semi-light' // overlay para garantir contraste
+  fontSize: 'large' | 'medium' | 'small'
 }
 
 export interface PageComposition {
@@ -37,20 +47,27 @@ export interface PageComposition {
     url: string
     slot: PhotoSlot
   }>
-  text?: {
-    content: string
-    position: 'top' | 'bottom' | 'center'
-    style: 'title' | 'caption' | 'body'
-  }
+  textOverlay?: TextOverlay
 }
 
 /**
- * Baixa uma imagem de uma URL e retorna o buffer
+ * Baixa uma imagem de uma URL ou cria buffer de cor sólida para hex colors (#RRGGBB)
  */
 async function downloadImage(url: string): Promise<Buffer> {
+  // Fallback: hex color → gerar PNG sólido
+  if (url.startsWith('#')) {
+    const hex = url.slice(1)
+    const r = parseInt(hex.slice(0, 2), 16)
+    const g = parseInt(hex.slice(2, 4), 16)
+    const b = parseInt(hex.slice(4, 6), 16)
+    return sharp({
+      create: { width: 1024, height: 1024, channels: 3, background: { r, g, b } }
+    }).png().toBuffer()
+  }
+
   const response = await fetch(url)
   if (!response.ok) {
-    throw new Error(`Failed to download image from ${url}`)
+    throw new Error(`Failed to download image from ${url}: ${response.status}`)
   }
   const arrayBuffer = await response.arrayBuffer()
   return Buffer.from(arrayBuffer)
@@ -69,18 +86,34 @@ function calculateSlotDimensions(slot: PhotoSlot): { x: number; y: number; width
 }
 
 /**
- * Processa uma foto para se encaixar perfeitamente no slot (object-fit: cover)
- * Sharp já faz cover internamente — sem resize + extract manual
+ * Mapeia cropFocus para position do sharp
  */
-async function fitPhotoToSlot(photoBuffer: Buffer, slotDimensions: { width: number; height: number }): Promise<Buffer> {
-  const { width: slotWidth, height: slotHeight } = slotDimensions
+function toCropPosition(cropFocus?: string): string {
+  switch (cropFocus) {
+    case 'top':       return 'top'
+    case 'bottom':    return 'bottom'
+    case 'attention': return 'attention'
+    case 'center':
+    default:          return 'centre'
+  }
+}
 
-  // sharp com fit:'cover' + position:'attention' (detecta área de interesse automaticamente)
-  // .png() garante formato correto para compositing (sem artefatos de JPEG)
+/**
+ * Processa uma foto para se encaixar perfeitamente no slot (object-fit: cover)
+ * Usa cropFocus para evitar cortar cabeças/rostos importantes
+ */
+async function fitPhotoToSlot(
+  photoBuffer: Buffer,
+  slotDimensions: { width: number; height: number },
+  cropFocus?: string
+): Promise<Buffer> {
+  const { width: slotWidth, height: slotHeight } = slotDimensions
+  const position = toCropPosition(cropFocus)
+
   const processedBuffer = await sharp(photoBuffer)
     .resize(slotWidth, slotHeight, {
       fit: 'cover',
-      position: 'attention' // prioriza faces e bordas — melhor crop automático
+      position
     })
     .png()
     .toBuffer()
@@ -89,39 +122,55 @@ async function fitPhotoToSlot(photoBuffer: Buffer, slotDimensions: { width: numb
 }
 
 /**
- * Cria um SVG com texto para overlay
+ * Cria um SVG com texto e contraste garantido pelo Diretor
  */
-function createTextSVG(text: string, position: 'top' | 'bottom' | 'center', style: 'title' | 'caption' | 'body'): string {
-  const fontSize = style === 'title' ? 120 : style === 'caption' ? 60 : 80
-  const fontFamily = style === 'title' ? 'Playfair Display, serif' : 'Lato, sans-serif'
-  const fontWeight = style === 'title' ? 'bold' : 'normal'
-  
-  let y = PAGE_HEIGHT / 2 // center
-  if (position === 'top') y = 200
-  if (position === 'bottom') y = PAGE_HEIGHT - 200
+function createTextSVG(overlay: TextOverlay): string {
+  const { content, subContent, position, color, background, fontSize: fontSizeKey } = overlay
 
-  // Quebrar texto em linhas se for muito longo
-  const words = text.split(' ')
-  const maxWordsPerLine = 6
+  const mainSize  = fontSizeKey === 'large' ? 110 : fontSizeKey === 'medium' ? 76 : 56
+  const subSize   = Math.round(mainSize * 0.45)
+  const fontFamily = 'Georgia, serif'
+
+  // Calcular área de texto (faixa horizontal)
+  const bandHeight = position === 'center' ? PAGE_HEIGHT : Math.round(PAGE_HEIGHT * 0.22)
+  let bandY = 0
+  if (position === 'center') bandY = 0
+  if (position === 'bottom')  bandY = PAGE_HEIGHT - bandHeight
+  if (position === 'top')     bandY = 0
+
+  // Quebrar texto em linhas
+  const words = content.split(' ')
+  const maxWordsPerLine = 5
   const lines: string[] = []
-  
   for (let i = 0; i < words.length; i += maxWordsPerLine) {
     lines.push(words.slice(i, i + maxWordsPerLine).join(' '))
   }
 
-  const lineHeight = fontSize * 1.3
-  const startY = y - ((lines.length - 1) * lineHeight) / 2
+  const lineHeight  = mainSize * 1.35
+  const blockHeight = lines.length * lineHeight + (subContent ? subSize * 2 : 0)
+  const blockStartY = bandY + (bandHeight - blockHeight) / 2 + mainSize
 
-  const textElements = lines.map((line, i) => {
-    const lineY = startY + (i * lineHeight)
-    return `<text x="${PAGE_WIDTH / 2}" y="${lineY}" font-size="${fontSize}" font-family="${fontFamily}" font-weight="${fontWeight}" fill="#333333" text-anchor="middle" dominant-baseline="middle">${escapeXml(line)}</text>`
-  }).join('\n')
+  const mainLines = lines.map((line, i) =>
+    `<text x="${PAGE_WIDTH / 2}" y="${Math.round(blockStartY + i * lineHeight)}" font-size="${mainSize}" font-family="${fontFamily}" font-weight="bold" fill="${color}" text-anchor="middle">${escapeXml(line)}</text>`
+  ).join('\n')
 
-  return `
-    <svg width="${PAGE_WIDTH}" height="${PAGE_HEIGHT}">
-      ${textElements}
-    </svg>
-  `
+  const subLine = subContent
+    ? `<text x="${PAGE_WIDTH / 2}" y="${Math.round(blockStartY + lines.length * lineHeight + subSize)}" font-size="${subSize}" font-family="${fontFamily}" font-weight="normal" fill="${color}" text-anchor="middle" opacity="0.85">${escapeXml(subContent)}</text>`
+    : ''
+
+  // Background overlay para garantir contraste
+  let bgRect = ''
+  if (background === 'semi-dark') {
+    bgRect = `<rect x="0" y="${bandY}" width="${PAGE_WIDTH}" height="${bandHeight}" fill="rgba(0,0,0,0.45)"/>`
+  } else if (background === 'semi-light') {
+    bgRect = `<rect x="0" y="${bandY}" width="${PAGE_WIDTH}" height="${bandHeight}" fill="rgba(255,255,255,0.55)"/>`
+  }
+
+  return `<svg width="${PAGE_WIDTH}" height="${PAGE_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+  ${bgRect}
+  ${mainLines}
+  ${subLine}
+</svg>`
 }
 
 function escapeXml(unsafe: string): string {
@@ -155,12 +204,12 @@ export async function composePage(composition: PageComposition, sessionId: strin
         const photoBuffer = await downloadImage(photo.url)
         const slotDimensions = calculateSlotDimensions(photo.slot)
         
-        console.log(`    Fitting photo to slot: ${slotDimensions.width}x${slotDimensions.height} at (${slotDimensions.x}, ${slotDimensions.y})`)
+        console.log(`    Fitting photo to slot: ${slotDimensions.width}x${slotDimensions.height} at (${slotDimensions.x}, ${slotDimensions.y}) cropFocus=${photo.slot.cropFocus || 'center'}`)
 
         const fittedPhotoBuffer = await fitPhotoToSlot(photoBuffer, {
           width: slotDimensions.width,
           height: slotDimensions.height
-        })
+        }, photo.slot.cropFocus)
 
         compositeOperations.push({
           input: fittedPhotoBuffer,
@@ -177,13 +226,9 @@ export async function composePage(composition: PageComposition, sessionId: strin
     // 3. Compor fotos sobre o background (background já é buffer PNG)
     let compositeInputs = [...compositeOperations]
 
-    // 4. Adicionar texto se houver
-    if (composition.text && composition.text.content) {
-      const textSVG = createTextSVG(
-        composition.text.content,
-        composition.text.position,
-        composition.text.style
-      )
+    // 4. Adicionar textOverlay com contraste garantido
+    if (composition.textOverlay?.content) {
+      const textSVG = createTextSVG(composition.textOverlay)
       compositeInputs.push({
         input: Buffer.from(textSVG),
         top: 0,

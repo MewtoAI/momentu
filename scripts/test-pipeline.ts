@@ -188,18 +188,11 @@ async function runPipelineTest() {
         return photo && slot ? { url: photo.url, slot } : null
       }).filter((p): p is { url: string; slot: any } => p !== null)
 
-      let text: PageComposition['text'] = undefined
-      if (page.index === 0 && page.title) {
-        text = { content: page.title, position: 'center', style: 'title' }
-      } else if (page.caption) {
-        text = { content: page.caption, position: 'bottom', style: 'caption' }
-      }
-
       return {
         pageIndex: page.index,
         backgroundUrl: bgMap.get(page.index) || '#FFF5F7',
         photos,
-        text
+        textOverlay: page.textOverlay
       }
     })
     

@@ -156,29 +156,11 @@ export async function POST(req: NextRequest) {
         } : null
       }).filter((p): p is { url: string; slot: PhotoSlot } => p !== null)
 
-      // Preparar texto (capa ou caption)
-      let text: PageComposition['text'] = undefined
-      if (page.index === 0 && page.title) {
-        // Capa
-        text = {
-          content: page.title,
-          position: 'center',
-          style: 'title'
-        }
-      } else if (page.caption) {
-        // Página interior com caption
-        text = {
-          content: page.caption,
-          position: 'bottom',
-          style: 'caption'
-        }
-      }
-
       return {
         pageIndex: page.index,
         backgroundUrl: bgMap.get(page.index) || createFallbackBackground(style),
         photos,
-        text
+        textOverlay: page.textOverlay
       }
     })
 
